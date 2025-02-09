@@ -1,8 +1,4 @@
-import re
-from typing import Optional
-from pydantic import BaseModel
-
-CODE_GENERATOR = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a chapter overview and topic, generate:
+QUESTION_PROMPT = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a chapter overview and topic, generate:
 
 1. First, analyze the mathematical concepts using `<thoughts>` XML tags like:
 <thoughts>
@@ -64,7 +60,7 @@ Additional Code Structure Requirements:
 '''.strip()
 
 
-PARAMETER_GENERATOR = '''You are a specialized parameter generator for creating diverse variations of mathematical problem inputs. Given a solution function and an example parameter set, your task is to generate four distinctly different parameter sets that explore various mathematical relationships and approaches.
+PARAMETER_PROMPT = '''You are a specialized parameter generator for creating diverse variations of mathematical problem inputs. Given a solution function and an example parameter set, your task is to generate four distinctly different parameter sets that explore various mathematical relationships and approaches.
 
 First, analyze the solution code and example parameters within the `<thoughts>` XML tags to determine:
 <thoughts>
@@ -119,66 +115,3 @@ Remember:
 - Ensure all parameters will work with the solve_problem() function
 - Maintain realistic and grade-appropriate values
 '''.strip()
-
-
-class CodeGeneratorOutput(BaseModel):
-    code: str
-    thoughts: Optional[str] = None
-    question: str
-    
-class ParameterGeneratorOutput(BaseModel):
-    thoughts: Optional[str] = None
-    parameters_code: str
-
-def extract_generator_content(text):
-    """
-    Extract content from question generator output including thoughts, 
-    question and code block. Supports both XML tags and Markdown headings.
-    
-    Args:
-        text (str): Input text containing XML tags/Markdown headings and code blocks
-        
-    Returns:
-        CodeGeneratorOutput: Object containing thoughts, question and code
-    """
-    thoughts_match = re.search(r'<thoughts>(.*?)</thoughts>', text, re.DOTALL)
-    question_match = re.search(r'<question>(.*?)</question>', text, re.DOTALL)
-    if not thoughts_match:
-        thoughts_match = re.search(r'#{1,6}\s*Thoughts\s*\n(.*?)(?=\n#{1,6}\s*|$)', text, re.DOTALL)
-    if not question_match:
-        question_match = re.search(r'#{1,6}\s*Question\s*\n(.*?)(?=\n#{1,6}\s*|$)', text, re.DOTALL)
-    
-    thoughts = thoughts_match.group(1).strip() if thoughts_match else None
-    question = question_match.group(1).strip() if question_match else None
-    code_match = re.search(r'```python\s*(.*?)\s*```', text, re.DOTALL)
-    code = code_match.group(1).strip() if code_match else None
-    
-    return CodeGeneratorOutput(
-        code=code,
-        thoughts=thoughts,
-        question=question,
-    )
-
-def extract_parameter_content(text):
-    """
-    Extract content from parameter generator output including thoughts
-    and parameter code block. Supports both XML tags and Markdown headings.
-    
-    Args:
-        text (str): Input text containing XML tags/Markdown headings and code blocks
-        
-    Returns:
-        ParameterGeneratorOutput: Object containing thoughts and parameters code
-    """
-    thoughts_match = re.search(r'<thoughts>(.*?)</thoughts>', text, re.DOTALL)
-    if not thoughts_match:
-        thoughts_match = re.search(r'#{1,6}\s*Thoughts\s*\n(.*?)(?=\n#{1,6}\s*|$)', text, re.DOTALL)
-    
-    thoughts = thoughts_match.group(1).strip() if thoughts_match else None
-    params_match = re.search(r'```python\s*(.*?)\s*```', text, re.DOTALL)
-    params_code = params_match.group(1).strip() if params_match else None
-    
-    return ParameterGeneratorOutput(
-        thoughts=thoughts,
-        parameters_code=params_code,
-    )

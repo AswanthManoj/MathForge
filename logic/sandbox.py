@@ -1,10 +1,12 @@
-import math, ast
-from pydantic import BaseModel
+import json
+import math, ast, sympy, numpy
 from typing import List, Optional
-from prompt import (ParameterGeneratorOutput,  
-extract_generator_content, extract_parameter_content,
-PARAMETER_GENERATOR, CODE_GENERATOR, CodeGeneratorOutput)
-from llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
+from pydantic import BaseModel, field_validator
+from prompts import (ParameterGeneratorOutput,
+NUMERICAL_PARAMETER_PROMPT, NUMERICAL_QUESTION_PROMPT, CodeGeneratorOutput,
+extract_generator_content, extract_parameter_content, remove_python_comments)
+from logic.llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
+from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE
 
 
 class SecurityException(Exception):
@@ -14,6 +16,15 @@ class Option(BaseModel):
     is_correct:    bool = False
     input_params:  dict
     output_result: Optional[int|float|str] = None
+
+    @field_validator('output_result')
+    @classmethod
+    def round_float_result(cls, value):
+        if isinstance(value, float):
+            return round(value, 5)
+        if isinstance(value, sympy.Expr):
+            return sympy.latex(value)
+        return value
 
 class FinalOutput(BaseModel):
     options:  List[Option]
@@ -105,32 +116,42 @@ class MathU:
         if chapter_overview is not None:
             messages = [{
                 "role": "user",
-                "content": f"# Topic:\n{topic}\n\n---\n# Chapter Oerview:\n{chapter_overview}"
+                "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
+                    topic=topic, 
+                    chapter_overview=chapter_overview
+                )
             }]
         else:
             messages = [{
                 "role": "user",
-                "content": f"# Topic:\n{topic}"
+                "content": TOPIC_ONLY_TEMPLATE.format(topic=topic)
             }]
         return await self.llm.generate(
             messages=messages,
-            system=CODE_GENERATOR,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
+            system=NUMERICAL_QUESTION_PROMPT,
             extractor_function=extract_generator_content,
         )
     
     async def _generate_parameters(self, actual_params: dict, code: str) -> ParameterGeneratorOutput:
+        code = remove_python_comments(code)
         return await self.llm.generate(
-            system=PARAMETER_GENERATOR,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
+            system=NUMERICAL_PARAMETER_PROMPT,
             extractor_function=extract_parameter_content,
             messages=[{
                 "role": "user",
-                "content": f"Here is the code: \n```python\n{code}\n```\n\nHere is sample input for the `solve_problem` function: \n```python\n{actual_params}\n```""".strip()
-            }], 
-    ) 
+                "content": PARAMETERS_TEMPLATE.format(
+                    code=code,
+                    actual_params=json.dumps(
+                        indent=4,
+                        obj=actual_params
+                    )
+                )
+            }]
+        )
         
     async def generate(self, topic: str, chapter_overview: str|None=None) -> FinalOutput:
         code_output = await self._generate_question_and_code(topic, chapter_overview)
