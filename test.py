@@ -1,6 +1,6 @@
 import asyncio
 from config import get_settings
-from logic.sandbox import MathU
+from logic.sandbox import MathU, MCQType
 from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
 
 settings = get_settings()
@@ -53,8 +53,8 @@ async def main():
                 provider = providers[current_provider_index] if current_provider_index is not None else None
                 output = await mathu.generate(
                     topic=topic,
-                    is_numerical=False,
-                    provider=provider
+                    provider=provider,
+                    mcq_type=MCQType.STATEMENT
                 )
                 
                 generated_options = []

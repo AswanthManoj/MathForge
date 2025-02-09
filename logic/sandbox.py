@@ -1,6 +1,7 @@
-import json
 import sympy as sp
 import numpy as np
+import json, random
+from enum import Enum
 from typing import Union
 import math, ast, sympy, numpy
 from typing import List, Optional
@@ -8,19 +9,23 @@ from prompts.expression import (
 QUESTION_ICL_MESSAGES, PARAMETER_ICL_MESSAGES)
 from pydantic import BaseModel, field_validator
 from prompts import (NUMERICAL_PARAMETER_PROMPT,
-NUMERICAL_QUESTION_PROMPT, ParameterGeneratorOutput,
+NUMERICAL_QUESTION_PROMPT, ParameterGeneratorOutput, STATEMENT_PROMPT,
 CodeGeneratorOutput, EXPRESSION_PARAMETER_PROMPT, EXPRESSION_QUESTION_PROMPT,
 extract_generator_content, extract_parameter_content, remove_python_comments)
 from logic.llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
 from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE
 
+class MCQType(str, Enum):
+    NUMERICAL = 'numerical'
+    SYMBOLIC = 'symbolic'
+    STATEMENT = 'statement'
 
 class SecurityException(Exception):
     pass
 
 class Option(BaseModel):
     is_correct:    bool = False
-    input_params:  dict
+    input_params:  Optional[dict] = None
     output_result: Optional[int|float|str] = None
 
     @field_validator('output_result')
@@ -139,87 +144,46 @@ class MathU:
             print(f"Execution error: {str(e)}")
             return None
         
-    async def _generate_question_and_code(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True, provider: Optional[str] = None) -> CodeGeneratorOutput:
-        """
-        Internal method to generate question and solution code.
+    async def _generate_numerical_symbolic_problem(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True, provider: Optional[str] = None) -> FinalOutput:
+        async def _generate_question_and_code() -> CodeGeneratorOutput:
+            result_type = "numerical" if is_numerical else "symbolic or expression"
+            if chapter_overview is not None:
+                messages = [{
+                    "role": "user",
+                    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
+                        topic=topic, 
+                        result_type=result_type,
+                        chapter_overview=chapter_overview,
+                    )
+                }]
+            else:
+                messages = [{
+                    "role": "user",
+                    "content": TOPIC_ONLY_TEMPLATE.format(topic=topic, result_type=result_type,)
+                }]
+            return await self.llm.generate(
+                provider=provider,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                messages=QUESTION_ICL_MESSAGES + messages,
+                extractor_function=extract_generator_content,
+                system=NUMERICAL_QUESTION_PROMPT if is_numerical else EXPRESSION_QUESTION_PROMPT,
+            )
         
-        Args:
-            topic (str): Mathematical topic
-            chapter_overview (str, optional): Additional context
-            is_numerical (bool): Type of question to generate
-            provider (str, optional): Specific LLM provider
+        async def _generate_parameters(code: str) -> ParameterGeneratorOutput:
+            return await self.llm.generate(
+                provider=provider,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                system=NUMERICAL_PARAMETER_PROMPT if is_numerical else EXPRESSION_PARAMETER_PROMPT,
+                extractor_function=extract_parameter_content,
+                messages=PARAMETER_ICL_MESSAGES + [{
+                    "role": "user",
+                    "content": PARAMETERS_TEMPLATE.format(code=code.replace('actual_params', 'sample_params'))
+                }]
+            )
             
-        Returns:
-            CodeGeneratorOutput: Generated question and solution code
-        """
-        result_type = "numerical" if is_numerical else "symbolic or expression"
-        if chapter_overview is not None:
-            messages = [{
-                "role": "user",
-                "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
-                    topic=topic, 
-                    result_type=result_type,
-                    chapter_overview=chapter_overview,
-                )
-            }]
-        else:
-            messages = [{
-                "role": "user",
-                "content": TOPIC_ONLY_TEMPLATE.format(topic=topic, result_type=result_type,)
-            }]
-        return await self.llm.generate(
-            provider=provider,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            messages=QUESTION_ICL_MESSAGES + messages,
-            extractor_function=extract_generator_content,
-            system=NUMERICAL_QUESTION_PROMPT if is_numerical else EXPRESSION_QUESTION_PROMPT,
-        )
-    
-    async def _generate_parameters(self, code: str, is_numerical: bool=True, provider: Optional[str] = None) -> ParameterGeneratorOutput:
-        """
-        Internal method to generate parameter sets for multiple choice options.
-        
-        Args:
-            code (str): Solution code to generate parameters for
-            is_numerical (bool): Type of question
-            provider (str, optional): Specific LLM provider
-            
-        Returns:
-            ParameterGeneratorOutput: Generated parameter sets
-        """
-        return await self.llm.generate(
-            provider=provider,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            system=NUMERICAL_PARAMETER_PROMPT if is_numerical else EXPRESSION_PARAMETER_PROMPT,
-            extractor_function=extract_parameter_content,
-            messages=PARAMETER_ICL_MESSAGES + [{
-                "role": "user",
-                "content": PARAMETERS_TEMPLATE.format(code=code.replace('actual_params', 'sample_params'))
-            }]
-        )
-        
-    async def generate(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True, provider: Optional[str] = None) -> FinalOutput:
-        """
-        Generates a complete mathematical question set with multiple choice options.
-        
-        Args:
-            topic (str): The mathematical topic to generate a question for
-            chapter_overview (str, optional): Additional context about the chapter/topic
-            is_numerical (bool): Whether to generate numerical or expression-based question
-            provider (str, optional): Specific LLM provider to use eg: `anthropic`
-            
-        Returns:
-            FinalOutput: Contains:
-                - Generated question
-                - Multiple choice options with correct answer
-                - Solution thought process
-                
-        Raises:
-            Exception: If question generation or parameter generation fails
-        """
-        code_output = await self._generate_question_and_code(topic, chapter_overview, is_numerical, provider)
+        code_output = await _generate_question_and_code()
         solve_function_namespace = self.safe_exec(
             code_output.code,
             disallowed_global_vars=['settings', 'llm'],
@@ -229,7 +193,7 @@ class MathU:
         actual_params = solve_function_namespace.get('actual_params')
         solve_function = solve_function_namespace.get('solve_problem')
         
-        params_output = await self._generate_parameters(code_output.code, is_numerical, provider)
+        params_output = await _generate_parameters(code_output.code)
         params_namespace = self.safe_exec(
             params_output.parameters_code,
             disallowed_global_vars=['settings', 'llm'],
@@ -265,4 +229,65 @@ class MathU:
             thoughts=code_output.thoughts,
         )
         
-
+    async def _generate_statement_problem(self, topic: str, chapter_overview: str|None=None, provider: Optional[str] = None) -> FinalOutput:
+        async def _generate_question_and_code() -> CodeGeneratorOutput:
+            result_type = "numerical" if random.choice([True, False]) else "symbolic or expression"
+            if chapter_overview is not None:
+                messages = [{
+                    "role": "user",
+                    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
+                        topic=topic, 
+                        result_type=result_type,
+                        chapter_overview=chapter_overview,
+                    )
+                }]
+            else:
+                messages = [{
+                    "role": "user",
+                    "content": TOPIC_ONLY_TEMPLATE.format(topic=topic, result_type=result_type,)
+                }]
+            return await self.llm.generate(
+                provider=provider,
+                messages=messages,
+                system=STATEMENT_PROMPT,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                extractor_function=extract_generator_content,
+            )
+        
+        code_output = await _generate_question_and_code()
+        solve_function_namespace = self.safe_exec(
+            code_output.code,
+            disallowed_global_vars=['settings', 'llm'],
+            disallowed_names=['os', 'sys', 'eval', 'exec'],
+        )
+        
+        actual_params = solve_function_namespace.get('actual_params')
+        solve_function = solve_function_namespace.get('solve_problem')
+        options = []
+        if actual_params and 'solve_problem' in solve_function_namespace:
+            result, statement, distractors = solve_function(**actual_params)
+            options.append(Option(
+                is_correct=True,
+                output_result=statement, 
+                input_params=actual_params  
+            ))
+            for distractor in distractors:
+                options.append(Option(
+                    output_result=distractor
+                ))
+        return FinalOutput(
+            options=options,
+            question=code_output.question,
+            thoughts=code_output.thoughts,
+        )
+        
+    async def generate(self, topic: str, chapter_overview: str|None=None, mcq_type: MCQType=MCQType.NUMERICAL, provider: Optional[str] = None) -> FinalOutput:
+        if mcq_type == MCQType.STATEMENT:
+            return await self._generate_statement_problem(topic, chapter_overview, provider=provider)
+        if mcq_type == MCQType.NUMERICAL:
+            is_numerical = True
+        elif mcq_type == MCQType.SYMBOLIC:
+            is_numerical = False
+        return await self._generate_numerical_symbolic_problem(topic, chapter_overview, is_numerical=is_numerical, provider=provider)
+        

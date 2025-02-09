@@ -1,6 +1,7 @@
 import re
 from typing import Optional
 from pydantic import BaseModel
+from prompts.statement import STATEMENT_PROMPT
 from prompts.numerical import (
 QUESTION_PROMPT as NUMERICAL_QUESTION_PROMPT, 
 PARAMETER_PROMPT as NUMERICAL_PARAMETER_PROMPT)

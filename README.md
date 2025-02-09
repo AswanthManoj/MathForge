@@ -45,8 +45,8 @@ Basic example:
 
 ```python
 import asyncio
-from sandbox import MathU
 from config import get_settings
+from sandbox import MathU, MCQType
 from llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
 
 
@@ -71,7 +71,8 @@ async def main():
     )
     output = await mathu.generate(
         topic="Addresses more complex problems that involve multiple right triangles, requiring the application of trigonometric principles and problem-solving skills",
-        is_numerical=False
+        mcq_type=MCQType.STATEMENT, # force generated mcq_type into `statement`, `numerical` and `symbolic` 
+        provider='google' # force the provider usage
     )
     print(f"Topic: {topic}")
     print(f"Question: {output.question}")
