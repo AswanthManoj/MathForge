@@ -1,13 +1,18 @@
 import json
+import sympy as sp
+import numpy as np
+from typing import Union
 import math, ast, sympy, numpy
 from typing import List, Optional
 from pydantic import BaseModel, field_validator
-from prompts import (ParameterGeneratorOutput,
-NUMERICAL_PARAMETER_PROMPT, NUMERICAL_QUESTION_PROMPT, CodeGeneratorOutput,
+from prompts import (NUMERICAL_PARAMETER_PROMPT,
+NUMERICAL_QUESTION_PROMPT, ParameterGeneratorOutput,
+CodeGeneratorOutput, EXPRESSION_PARAMETER_PROMPT, EXPRESSION_QUESTION_PROMPT,
 extract_generator_content, extract_parameter_content, remove_python_comments)
 from logic.llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
 from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE
 
+from prompts.expression import QUESTION_ICL_MESSAGES, PARAMETER_ICL_MESSAGES
 
 class SecurityException(Exception):
     pass
@@ -112,7 +117,7 @@ class MathU:
             print(f"Execution error: {str(e)}")
             return None
         
-    async def _generate_question_and_code(self, topic: str, chapter_overview: str|None=None) -> CodeGeneratorOutput:
+    async def _generate_question_and_code(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True) -> CodeGeneratorOutput:
         if chapter_overview is not None:
             messages = [{
                 "role": "user",
@@ -127,34 +132,28 @@ class MathU:
                 "content": TOPIC_ONLY_TEMPLATE.format(topic=topic)
             }]
         return await self.llm.generate(
-            messages=messages,
+            messages=QUESTION_ICL_MESSAGES + messages,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
-            system=NUMERICAL_QUESTION_PROMPT,
+            system=NUMERICAL_QUESTION_PROMPT if is_numerical else EXPRESSION_QUESTION_PROMPT,
             extractor_function=extract_generator_content,
         )
     
-    async def _generate_parameters(self, actual_params: dict, code: str) -> ParameterGeneratorOutput:
-        code = remove_python_comments(code)
+    async def _generate_parameters(self, code: str, is_numerical: bool=True) -> ParameterGeneratorOutput:
+        # code = remove_python_comments(code)
         return await self.llm.generate(
             max_tokens=self.max_tokens,
             temperature=self.temperature,
-            system=NUMERICAL_PARAMETER_PROMPT,
+            system=NUMERICAL_PARAMETER_PROMPT if is_numerical else EXPRESSION_PARAMETER_PROMPT,
             extractor_function=extract_parameter_content,
-            messages=[{
+            messages=PARAMETER_ICL_MESSAGES + [{
                 "role": "user",
-                "content": PARAMETERS_TEMPLATE.format(
-                    code=code,
-                    actual_params=json.dumps(
-                        indent=4,
-                        obj=actual_params
-                    )
-                )
+                "content": PARAMETERS_TEMPLATE.format(code=code.replace('actual_params', 'sample_params'))
             }]
         )
         
-    async def generate(self, topic: str, chapter_overview: str|None=None) -> FinalOutput:
-        code_output = await self._generate_question_and_code(topic, chapter_overview)
+    async def generate(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True) -> FinalOutput:
+        code_output = await self._generate_question_and_code(topic, chapter_overview, is_numerical)
         solve_function_namespace = self.safe_exec(
             code_output.code,
             disallowed_global_vars=['settings', 'llm'],
@@ -164,18 +163,18 @@ class MathU:
         actual_params = solve_function_namespace.get('actual_params')
         solve_function = solve_function_namespace.get('solve_problem')
         
-        params_output = await self._generate_parameters(actual_params, code_output.code)
+        params_output = await self._generate_parameters(code_output.code, is_numerical)
         params_namespace = self.safe_exec(
             params_output.parameters_code,
             disallowed_global_vars=['settings', 'llm'],
             disallowed_names=['os', 'sys', 'eval', 'exec'],
         )
 
-        distractor_params_1 = params_namespace.get('distractor_params_1')
-        distractor_params_2 = params_namespace.get('distractor_params_2')
-        distractor_params_3 = params_namespace.get('distractor_params_3')
-        distractor_params_4 = params_namespace.get('distractor_params_4')
-        distractor_params = [distractor_params_1, distractor_params_2, distractor_params_3, distractor_params_4]
+        param_set_1 = params_namespace.get('param_set_1')
+        param_set_2 = params_namespace.get('param_set_2')
+        param_set_3 = params_namespace.get('param_set_3')
+        param_set_4 = params_namespace.get('param_set_4')
+        param_set = [param_set_1, param_set_2, param_set_3, param_set_4]
         
         options = []
         if actual_params and 'solve_problem' in solve_function_namespace:
@@ -186,8 +185,8 @@ class MathU:
                 input_params=actual_params  
             ))
         
-        if distractor_params and 'solve_problem' in solve_function_namespace:
-            for i, params in enumerate(distractor_params, 1):
+        if param_set and 'solve_problem' in solve_function_namespace:
+            for i, params in enumerate(param_set, 1):
                 result = solve_function(**params)
                 options.append(Option(
                     is_correct=False,

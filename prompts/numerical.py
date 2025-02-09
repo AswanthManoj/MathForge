@@ -1,3 +1,6 @@
+from prompts.base import Example
+
+
 QUESTION_PROMPT = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a chapter overview and topic, generate:
 
 1. First, analyze the mathematical concepts using `<thoughts>` XML tags like:
@@ -74,25 +77,25 @@ First, analyze the solution code and example parameters within the `<thoughts>` 
 Generate parameters in this exact format:
 ```python
 # Generate four distinct parameter variations
-distractor_params_1 = {
+param_set_1 = {
     # Must mirror actual_params structure
     # Comment explaining mathematical reasoning
     # Expected result calculation
 }
 
-distractor_params_2 = {
+param_set_2 = {
     # Different values from distractor_1
     # Different mathematical approach
     # Expected result calculation
 }
 
-distractor_params_3 = {
+param_set_3 = {
     # Another set of distinct values
     # Different mathematical pattern
     # Expected result calculation
 }
 
-distractor_params_4 = {
+param_set_4 = {
     # Final set of distinct values
     # Different mathematical relationship
     # Expected result calculation
@@ -115,3 +118,41 @@ Remember:
 - Ensure all parameters will work with the solve_problem() function
 - Maintain realistic and grade-appropriate values
 '''.strip()
+
+QUESTION_PROMPT_ICL = [
+    {
+        "role": "user",
+        "content": None
+    },
+    {
+        "role": "assistant",
+        "content": None
+    },
+    {
+        "role": "user",
+        "content": None
+    },
+    {
+        "role": "assistant",
+        "content": None
+    },
+]
+
+PARAMETER_PROMPT_ICL = [
+    {
+        "role": "user",
+        "content": None
+    },
+    {
+        "role": "assistant",
+        "content": None
+    },
+    {
+        "role": "user",
+        "content": None
+    },
+    {
+        "role": "assistant",
+        "content": None
+    },
+]

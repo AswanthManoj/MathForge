@@ -4,6 +4,10 @@ from pydantic import BaseModel
 from prompts.numerical import (
 QUESTION_PROMPT as NUMERICAL_QUESTION_PROMPT, 
 PARAMETER_PROMPT as NUMERICAL_PARAMETER_PROMPT)
+from prompts.expression import (
+QUESTION_PROMPT as EXPRESSION_QUESTION_PROMPT, 
+PARAMETER_PROMPT as EXPRESSION_PARAMETER_PROMPT
+)
 
 
 class CodeGeneratorOutput(BaseModel):

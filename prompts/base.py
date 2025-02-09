@@ -1,3 +1,30 @@
+from pydantic import BaseModel
+from typing import Optional
+
+class SampleQuestionInput(BaseModel):
+    topic: str
+    chapter_overview: Optional[str] = None
+  
+class SampleQuestionOutput(BaseModel):
+    thoughts: Optional[str] = None
+    question: str
+    code: str
+    
+class SampleParameterInput(BaseModel):
+    code: str
+  
+class SampleParameterOutput(BaseModel):
+    thoughts: str
+    parameters_code: str
+    
+class Instance(BaseModel):
+    input: SampleQuestionInput|SampleParameterInput
+    output: SampleQuestionOutput|SampleParameterOutput
+
+class Example(BaseModel):
+    question: Instance
+    parameter: Instance
+
 TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE = """
 # Topic:
 {topic}
@@ -19,16 +46,11 @@ TOPIC_ONLY_TEMPLATE = """
 
 
 PARAMETERS_TEMPLATE = """
-Here is the code:
+Here is `solve_problem` function and a sample parameter inputs:
 ```python
 {code}
 ```
 
-Here is sample input for the `solve_problem` function:
-```python
-{actual_params}
-```
-
-Now generate different parameter inputs suitable for the `solve_problem` function.
+Now generate different parameter inputs suitable for the `solve_problem` function which would generate distinct answers.
 """.strip()
 
