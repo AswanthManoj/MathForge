@@ -10,7 +10,7 @@ QUESTION_PROMPT = '''You are a specialized mathematics question generator for CB
 - Core mathematical concepts and formulas
 - Algebraic and geometric relationships
 - Problem-solving patterns and approaches
-- Possible symbolic and numerical solutions
+- Possible symbolic and expression solutions
 - Common student misconceptions
 </thoughts>
 
@@ -40,8 +40,8 @@ def solve_problem(**params):
     Returns:
         Union[float, str, sp.Expr]: Solution that could be:
             - A numerical value (float)
-            - A symbolic expression (sp.Expr)
-            - A LaTeX string for complex expressions
+            - A symbolic expression (sp.Expr) (preffered)
+            - A LaTeX string for complex expressions (preffered)
     """
     # Initialize symbolic variables if needed
     # Use sympy for symbolic computations
@@ -779,17 +779,23 @@ param_set_4 = {
 
 QUESTION_ICL_MESSAGES = [{
     "role": "user",
-    "content": TOPIC_ONLY_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_1.input.topic)
+    "content": TOPIC_ONLY_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_1.input.topic, result_type="symbolic or expression")
 }, {
     "role": "assistant",
     "content": '\n'.join([QUESTION_ICL_EXAMPLE_1.output.thoughts, QUESTION_ICL_EXAMPLE_1.output.question, QUESTION_ICL_EXAMPLE_1.output.code])
 }, {
     "role": "user",
-    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_2.input.topic, chapter_overview=QUESTION_ICL_EXAMPLE_2.input.chapter_overview)
+    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_2.input.topic, chapter_overview=QUESTION_ICL_EXAMPLE_2.input.chapter_overview, result_type="symbolic or expression")
 }, {
     "role": "assistant",
     "content": '\n'.join([QUESTION_ICL_EXAMPLE_2.output.thoughts, QUESTION_ICL_EXAMPLE_2.output.question, QUESTION_ICL_EXAMPLE_2.output.code])
-},]
+}, {
+    "role": "user",
+    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_3.input.topic, chapter_overview=QUESTION_ICL_EXAMPLE_3.input.chapter_overview, result_type="symbolic or expression")
+}, {
+    "role": "assistant",
+    "content": '\n'.join([QUESTION_ICL_EXAMPLE_3.output.thoughts, QUESTION_ICL_EXAMPLE_3.output.question, QUESTION_ICL_EXAMPLE_3.output.code])
+}]
 
 
 PARAMETER_ICL_MESSAGES = [{
@@ -804,4 +810,10 @@ PARAMETER_ICL_MESSAGES = [{
 }, {
     "role": "assistant",
     "content": '\n'.join([PARAMETER_ICL_EXAMPLE_2.output.thoughts, PARAMETER_ICL_EXAMPLE_2.output.parameters_code])
-},]
+}, {
+    "role": "user",
+    "content": PARAMETERS_TEMPLATE.format(code=PARAMETER_ICL_EXAMPLE_3.input.code)
+}, {
+    "role": "assistant",
+    "content": '\n'.join([PARAMETER_ICL_EXAMPLE_3.output.thoughts, PARAMETER_ICL_EXAMPLE_3.output.parameters_code])
+}]

@@ -36,59 +36,51 @@ async def main():
         "Introduces primary trigonometric ratios such as sine, cosine, and tangent, focusing on their definitions and basic properties.",
         "Explains the geometric and mathematical definitions of trigonometric ratios in the context of right triangles and unit circles.",
         "Focuses on the relationship between trigonometric ratios and the angles of elevation or depression that can be used to find unknown distances.",
-        "Focuses on using trigonometric ratios to solve practical problems involving heights and distances, including finding unknown lengths and angles.",
+        "Focuses on using trigonometric ratios to solve practical problems involving heights and distances, including unknown lengths and angles.",
         "Addresses more complex problems that involve multiple right triangles, requiring the application of trigonometric principles and problem-solving skills",
         "Demonstrates how trigonometry can be applied in real-world situations to measure inaccessible heights and distances, fostering a practical understanding.",
     ]
     
-    ctry = 0
-    max_tries = 3
-    current_provider_index = None
+    max_retries = 3
     providers = ["google", "anthropic", "together"]
+
     for topic in topics:
-        if ctry < max_tries:
+        current_provider_index = None
+        retry_count = 0
+        
+        while retry_count < max_retries:
             try:
+                provider = providers[current_provider_index] if current_provider_index is not None else None
                 output = await mathu.generate(
                     topic=topic,
                     is_numerical=False,
-                    provider=providers[current_provider_index] if current_provider_index is not None else None
+                    provider=provider
                 )
                 
                 generated_options = []
                 print(f"Topic: {topic}")
                 print(f"Question: {output.question}")
                 for i, option in enumerate(output.options, 1):
-                    if (option.output_result not in generated_options) or (option.is_correct):
+                    if (option.output_result not in generated_options):
                         print(f"{i}. Output result: {option.output_result} | Is correct: {option.is_correct}")
-                        generated_options.append(option.output_result)
+                        if not option.is_correct:
+                            generated_options.append(option.output_result)
                         continue
-                    current_provider_index = ((current_provider_index + 1) % len(providers)) if current_provider_index is not None else 0
-                    raise
+                    raise Exception("Duplicate option found")
+                
+                # If successful, break the retry loop
+                break
+                
             except Exception as e:
-                ctry+=1
-                print(f"xxxxxxx Retry {ctry} xxxxxxx")
-                pass
+                retry_count += 1
+                current_provider_index = retry_count - 1 if retry_count <= len(providers) else None
+                print(f"xxxxxxx Retry {retry_count} with provider {provider} xxxxxxx")
+                
+                if retry_count >= max_retries:
+                    print(f"Max retries reached for topic: {topic}")
+                    break
+        
         print("-----"*5)
-        current_provider_index = None
-        
-        
-    #############################
-    # For concurrent execution: #
-    #############################
-    # tasks = []
-    # for topic in topics:
-    #     task = asyncio.create_task(mathu.generate(topic=topic, is_numerical=False))
-    #     tasks.append(task)
-    
-    # all_results = []
-    # for i, task in enumerate(tasks):
-    #     try:
-    #         result = await task
-    #         all_results.append(result)
-    #         print(f"Task {i} completed successfully")
-    #     except Exception as e:
-    #         print(f"Task {i} failed with error: {str(e)}")
-    #         all_results.append(None)
 
 if __name__ == "__main__":
     asyncio.run(main())

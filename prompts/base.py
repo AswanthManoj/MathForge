@@ -30,10 +30,11 @@ TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE = """
 {topic}
 
 ---
-# Chapter Oerview:
+# Overview:
 {chapter_overview}
 
 ---
+Generate questions and code which would result in {result_type} answer results
 """.strip()
 
 
@@ -42,6 +43,7 @@ TOPIC_ONLY_TEMPLATE = """
 {topic}
 
 ---
+Generate questions and code which would result in {result_type} answer results
 """.strip()
 
 

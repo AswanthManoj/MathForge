@@ -152,18 +152,20 @@ class MathU:
         Returns:
             CodeGeneratorOutput: Generated question and solution code
         """
+        result_type = "numerical" if is_numerical else "symbolic or expression"
         if chapter_overview is not None:
             messages = [{
                 "role": "user",
                 "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
                     topic=topic, 
-                    chapter_overview=chapter_overview
+                    result_type=result_type,
+                    chapter_overview=chapter_overview,
                 )
             }]
         else:
             messages = [{
                 "role": "user",
-                "content": TOPIC_ONLY_TEMPLATE.format(topic=topic)
+                "content": TOPIC_ONLY_TEMPLATE.format(topic=topic, result_type=result_type,)
             }]
         return await self.llm.generate(
             provider=provider,
