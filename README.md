@@ -24,7 +24,7 @@ pip install astral-uv
 
 2. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/AswanthManoj/MathU.git
 cd mathu
 ```
 
@@ -70,12 +70,13 @@ async def main():
         provider_priority=settings.provider_priority
     )
     output = await mathu.generate(
-        topic="Word Problems on Time, Speed and Distance",
-        chapter_overview="Your chapter overview here..."
+        topic="Addresses more complex problems that involve multiple right triangles, requiring the application of trigonometric principles and problem-solving skills",
+        is_numerical=False
     )
-    print(output.question)
-    for option in output.options:
-        print(f"Result: {option.output_result}, Correct: {option.is_correct}")
+    print(f"Topic: {topic}")
+    print(f"Question: {output.question}")
+    for i, option in enumerate(output.options, 1):
+        print(f"{i}. Output result: {option.output_result} | Is correct: {option.is_correct}")
 
 if __name__ == "__main__":
     asyncio.run(main())

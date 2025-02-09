@@ -21,14 +21,22 @@ class ParameterGeneratorOutput(BaseModel):
 
 def extract_generator_content(text):
     """
-    Extract content from question generator output including thoughts, 
-    question and code block. Supports both XML tags and Markdown headings.
+    Parses LLM output to extract structured question generation content.
+    
+    Supports two format types:
+    - XML tags (<thoughts>, <question>)
+    - Markdown headings (# Thoughts, # Question)
+    
+    Extracts:
+    - Thought process behind question generation
+    - The actual question text
+    - Python code implementation
     
     Args:
-        text (str): Input text containing XML tags/Markdown headings and code blocks
+        text (str): Raw LLM output text
         
     Returns:
-        CodeGeneratorOutput: Object containing thoughts, question and code
+        CodeGeneratorOutput: Structured output containing thoughts, question and code
     """
     thoughts_match = re.search(r'<thoughts>(.*?)</thoughts>', text, re.DOTALL)
     question_match = re.search(r'<question>(.*?)</question>', text, re.DOTALL)
@@ -50,14 +58,21 @@ def extract_generator_content(text):
 
 def extract_parameter_content(text):
     """
-    Extract content from parameter generator output including thoughts
-    and parameter code block. Supports both XML tags and Markdown headings.
+    Parses LLM output to extract parameter generation content.
+    
+    Supports two format types:
+    - XML tags (<thoughts>)
+    - Markdown headings (# Thoughts)
+    
+    Extracts:
+    - Thought process behind parameter generation
+    - Python code for parameter generation
     
     Args:
-        text (str): Input text containing XML tags/Markdown headings and code blocks
+        text (str): Raw LLM output text
         
     Returns:
-        ParameterGeneratorOutput: Object containing thoughts and parameters code
+        ParameterGeneratorOutput: Structured output containing thoughts and parameter code
     """
     thoughts_match = re.search(r'<thoughts>(.*?)</thoughts>', text, re.DOTALL)
     if not thoughts_match:

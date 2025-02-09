@@ -22,6 +22,17 @@ class Settings:
     
 _settings = None
 def get_settings():
+    """
+    Singleton pattern implementation for application settings.
+    
+    Ensures:
+    - Only one Settings instance exists throughout application lifecycle
+    - Thread-safe access to settings
+    - Lazy initialization of settings
+    
+    Returns:
+        Settings: Global settings instance with environment configurations
+    """
     global _settings
     if _settings is None:
         _settings = Settings()

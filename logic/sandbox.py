@@ -4,6 +4,8 @@ import numpy as np
 from typing import Union
 import math, ast, sympy, numpy
 from typing import List, Optional
+from prompts.expression import (
+QUESTION_ICL_MESSAGES, PARAMETER_ICL_MESSAGES)
 from pydantic import BaseModel, field_validator
 from prompts import (NUMERICAL_PARAMETER_PROMPT,
 NUMERICAL_QUESTION_PROMPT, ParameterGeneratorOutput,
@@ -12,7 +14,6 @@ extract_generator_content, extract_parameter_content, remove_python_comments)
 from logic.llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
 from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE
 
-from prompts.expression import QUESTION_ICL_MESSAGES, PARAMETER_ICL_MESSAGES
 
 class SecurityException(Exception):
     pass
@@ -38,6 +39,18 @@ class FinalOutput(BaseModel):
     
     
 class MathU:
+    """
+    A class that generates mathematical questions and evaluates solutions using LLM providers.
+    
+    This class handles:
+    - Generation of mathematical questions and their corresponding code solutions
+    - Safe execution of generated code in a restricted environment
+    - Parameter generation for multiple choice options
+    - Integration with different LLM providers (Anthropic, Google, Together)
+    
+    The class supports both numerical and expression-based questions, with built-in
+    security measures to prevent dangerous code execution.
+    """
     def __init__(
         self, 
         max_tokens: int = 3049,
@@ -58,15 +71,24 @@ class MathU:
         
     def safe_exec(self, code, disallowed_names=None, disallowed_global_vars=None):
         """
-        Executes code in a restricted environment with security checks.
+        Executes Python code in a restricted environment with security checks.
+        
+        Performs AST-based analysis to prevent:
+        - Use of dangerous built-ins (eval, exec, etc.)
+        - Access to system modules (os, sys, etc.) 
+        - Use of dunder methods
+        - Unauthorized imports
         
         Args:
-            code (str): The code to execute
+            code (str): Python code to execute
             disallowed_names (list): Names that cannot be used in the code
-            disallowed_global_vars (dict): Global variables to exclude
-        
+            disallowed_global_vars (dict): Global variables to exclude from execution context
+            
         Returns:
-            dict: Updated local namespace after execution, or None on error
+            dict: Local namespace after execution if successful, None if execution fails
+            
+        Raises:
+            SecurityException: If code contains dangerous operations
         """
         def analyze_ast(node, disallowed_names):
             """
@@ -117,7 +139,19 @@ class MathU:
             print(f"Execution error: {str(e)}")
             return None
         
-    async def _generate_question_and_code(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True) -> CodeGeneratorOutput:
+    async def _generate_question_and_code(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True, provider: Optional[str] = None) -> CodeGeneratorOutput:
+        """
+        Internal method to generate question and solution code.
+        
+        Args:
+            topic (str): Mathematical topic
+            chapter_overview (str, optional): Additional context
+            is_numerical (bool): Type of question to generate
+            provider (str, optional): Specific LLM provider
+            
+        Returns:
+            CodeGeneratorOutput: Generated question and solution code
+        """
         if chapter_overview is not None:
             messages = [{
                 "role": "user",
@@ -132,16 +166,28 @@ class MathU:
                 "content": TOPIC_ONLY_TEMPLATE.format(topic=topic)
             }]
         return await self.llm.generate(
-            messages=QUESTION_ICL_MESSAGES + messages,
+            provider=provider,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
-            system=NUMERICAL_QUESTION_PROMPT if is_numerical else EXPRESSION_QUESTION_PROMPT,
+            messages=QUESTION_ICL_MESSAGES + messages,
             extractor_function=extract_generator_content,
+            system=NUMERICAL_QUESTION_PROMPT if is_numerical else EXPRESSION_QUESTION_PROMPT,
         )
     
-    async def _generate_parameters(self, code: str, is_numerical: bool=True) -> ParameterGeneratorOutput:
-        # code = remove_python_comments(code)
+    async def _generate_parameters(self, code: str, is_numerical: bool=True, provider: Optional[str] = None) -> ParameterGeneratorOutput:
+        """
+        Internal method to generate parameter sets for multiple choice options.
+        
+        Args:
+            code (str): Solution code to generate parameters for
+            is_numerical (bool): Type of question
+            provider (str, optional): Specific LLM provider
+            
+        Returns:
+            ParameterGeneratorOutput: Generated parameter sets
+        """
         return await self.llm.generate(
+            provider=provider,
             max_tokens=self.max_tokens,
             temperature=self.temperature,
             system=NUMERICAL_PARAMETER_PROMPT if is_numerical else EXPRESSION_PARAMETER_PROMPT,
@@ -152,8 +198,26 @@ class MathU:
             }]
         )
         
-    async def generate(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True) -> FinalOutput:
-        code_output = await self._generate_question_and_code(topic, chapter_overview, is_numerical)
+    async def generate(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True, provider: Optional[str] = None) -> FinalOutput:
+        """
+        Generates a complete mathematical question set with multiple choice options.
+        
+        Args:
+            topic (str): The mathematical topic to generate a question for
+            chapter_overview (str, optional): Additional context about the chapter/topic
+            is_numerical (bool): Whether to generate numerical or expression-based question
+            provider (str, optional): Specific LLM provider to use eg: `anthropic`
+            
+        Returns:
+            FinalOutput: Contains:
+                - Generated question
+                - Multiple choice options with correct answer
+                - Solution thought process
+                
+        Raises:
+            Exception: If question generation or parameter generation fails
+        """
+        code_output = await self._generate_question_and_code(topic, chapter_overview, is_numerical, provider)
         solve_function_namespace = self.safe_exec(
             code_output.code,
             disallowed_global_vars=['settings', 'llm'],
@@ -163,7 +227,7 @@ class MathU:
         actual_params = solve_function_namespace.get('actual_params')
         solve_function = solve_function_namespace.get('solve_problem')
         
-        params_output = await self._generate_parameters(code_output.code, is_numerical)
+        params_output = await self._generate_parameters(code_output.code, is_numerical, provider)
         params_namespace = self.safe_exec(
             params_output.parameters_code,
             disallowed_global_vars=['settings', 'llm'],

@@ -23,6 +23,18 @@ class TogetherConfig(LLMProviderConfig):
     pass
 
 class LLMConnector:
+    """
+    A connector class that manages interactions with multiple LLM providers.
+    
+    Handles:
+    - Connection management for multiple LLM providers (Anthropic, Google, Together)
+    - Provider fallback logic if primary provider fails
+    - Streaming and non-streaming LLM interactions
+    - Message formatting for different provider APIs
+    
+    Supports both sync and async operations with automatic retries and
+    provider failover based on configured priority.
+    """
     def __init__(
         self, 
         anthropic: Optional[AnthropicConfig] = None,
@@ -56,6 +68,18 @@ class LLMConnector:
             )
 
     async def _stream_openai(self, client: AsyncOpenAI, model: str, messages: List[dict], **kwargs):
+        """
+        Internal method to handle OpenAI-compatible streaming responses.
+        
+        Args:
+            client (AsyncOpenAI): OpenAI client instance
+            model (str): Model identifier
+            messages (List[dict]): Chat messages
+            **kwargs: Additional API parameters
+            
+        Yields:
+            str: Content chunks from stream
+        """
         stream = await client.chat.completions.create(
             stream=True,
             model=model,
@@ -67,6 +91,17 @@ class LLMConnector:
             yield chunk.choices[0].delta.content
     
     async def _stream_anthropic(self, client: AsyncAnthropic, model: str, **kwargs):
+        """
+        Internal method to handle Anthropic streaming responses.
+        
+        Args:
+            client (AsyncAnthropic): Anthropic client instance
+            model (str): Model identifier
+            **kwargs: Additional API parameters
+            
+        Yields:
+            str: Content chunks from stream
+        """
         stream_params = dict(
             model=model,
             system=kwargs.get("system"),
@@ -92,6 +127,25 @@ class LLMConnector:
         temperature: float=0.5,
         provider: Optional[str] = None
     ):
+        """
+        Streams LLM responses with provider fallback support.
+        
+        Args:
+            system (str, optional): System prompt for the LLM
+            messages (List[dict]): Conversation history in chat format
+            max_tokens (int): Maximum tokens in response
+            temperature (float): Sampling temperature
+            provider (str, optional): Specific provider to use
+            
+        Yields:
+            LLMMessage: Contains:
+                - Content delta (new content chunk)
+                - Full content so far
+                - Stream completion status
+                
+        Raises:
+            Exception: If all configured providers fail
+        """
         output = []
         current_index = 0
         current_provider = provider if provider in self.provider_priority else self.provider_priority[0]
@@ -134,6 +188,24 @@ class LLMConnector:
         temperature: float = 0.3,
         provider: Optional[str] = None
     ):
+        """
+        Generates complete LLM responses with optional output processing.
+        
+        Args:
+            messages (List[dict]): Conversation history in chat format
+            extractor_function (Callable, optional): Function to process raw LLM output
+            system (str, optional): System prompt for the LLM
+            max_tokens (int): Maximum tokens in response
+            enable_cache (bool): Whether to enable response caching
+            temperature (float): Sampling temperature
+            provider (str, optional): Specific provider to use
+            
+        Returns:
+            Union[str, Any]: Raw LLM response or processed output if extractor provided
+            
+        Raises:
+            Exception: If all configured providers fail
+        """
         current_index = 0
         current_provider = provider if provider in self.provider_priority else self.provider_priority[0]
     
