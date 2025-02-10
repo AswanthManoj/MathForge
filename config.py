@@ -8,6 +8,7 @@ load_dotenv()
 class Settings:
     max_tokens: int = 3049
     temperature: float = 0.3
+    code_execution_timeout: int = 5
     
     database_url: Optional[str] = os.getenv("DATABASE_URL")
     google_api_key: Optional[str] = os.getenv("GOOGLE_API")

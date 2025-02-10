@@ -1,6 +1,6 @@
 import asyncio
 from config import get_settings
-from logic.sandbox import MathU, MCQType
+from logic.sandbox import MathU, MCQType, DifficultyLevel
 from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
 
 settings = get_settings()
@@ -41,46 +41,19 @@ async def main():
         "Demonstrates how trigonometry can be applied in real-world situations to measure inaccessible heights and distances, fostering a practical understanding.",
     ]
     
-    max_retries = 3
-    providers = ["google", "anthropic", "together"]
-
-    for topic in topics:
-        current_provider_index = None
-        retry_count = 0
-        
-        while retry_count < max_retries:
-            try:
-                provider = providers[current_provider_index] if current_provider_index is not None else None
-                output = await mathu.generate(
-                    topic=topic,
-                    provider=provider,
-                    mcq_type=MCQType.STATEMENT
-                )
-                
-                generated_options = []
-                print(f"Topic: {topic}")
-                print(f"Question: {output.question}")
-                for i, option in enumerate(output.options, 1):
-                    if (option.output_result not in generated_options):
-                        print(f"{i}. Output result: {option.output_result} | Is correct: {option.is_correct}")
-                        if not option.is_correct:
-                            generated_options.append(option.output_result)
-                        continue
-                    raise Exception("Duplicate option found")
-                
-                # If successful, break the retry loop
-                break
-                
-            except Exception as e:
-                retry_count += 1
-                current_provider_index = retry_count - 1 if retry_count <= len(providers) else None
-                print(f"xxxxxxx Retry {retry_count} with provider {provider} xxxxxxx")
-                
-                if retry_count >= max_retries:
-                    print(f"Max retries reached for topic: {topic}")
-                    break
-        
-        print("-----"*5)
+    output = await mathu.generate(
+        topic=topics[0],
+        temperature=0.5, 
+        provider="google",
+        mcq_type=MCQType.STATEMENT,
+        difficulty_level=DifficultyLevel.HARD
+    )
+    print(output.question)
+    for i, option in enumerate(output.options, 1):
+        print(f"{i}. {option.output_result} | is correct: {option.is_correct}")
+    
+   
 
 if __name__ == "__main__":
-    asyncio.run(main())
+   asyncio.run(main())
+

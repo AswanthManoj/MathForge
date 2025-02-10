@@ -1,9 +1,9 @@
 from prompts.base import (PARAMETERS_TEMPLATE,
-TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, Instance, Example,
+TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, Instance, DifficultyLevel,
 SampleParameterInput, SampleParameterOutput, SampleQuestionInput, SampleQuestionOutput)
 
 
-QUESTION_PROMPT = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a chapter overview and topic, generate:
+QUESTION_PROMPT = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a topic, optional chapter overview and a difficulty level, generate:
 
 1. First, analyze the mathematical concepts using `<thoughts>` XML tags:
 <thoughts>
@@ -12,6 +12,10 @@ QUESTION_PROMPT = '''You are a specialized mathematics question generator for CB
 - Problem-solving patterns and approaches
 - Possible symbolic and expression solutions
 - Common student misconceptions
+- Question complexity and scaffolding based on provided difficulty level:
+ * `easy`: Direct application of single concept, basic calculations and simple reasoning
+ * `medium`: Multi-step problems combining 2-3 concepts with moderate computations
+ * `hard`: Problems requiring thorough understanding of multiple concepts, careful reasoning and detailed calculations suitable for 10th grade
 </thoughts>
 
 2. Generate a clear mathematical question in `<question>` XML tag using LaTeX notation where needed:
@@ -141,6 +145,7 @@ Remember:
 
 QUESTION_ICL_EXAMPLE_1 = Instance(
     input=SampleQuestionInput(
+        difficulty_level=DifficultyLevel.HARD,
         topic="Word Problems on Time, Speed and Distance using Quadratic Equations with expression as a solution"
     ),
     output=SampleQuestionOutput(
@@ -334,6 +339,7 @@ param_set_4 = {
 
 QUESTION_ICL_EXAMPLE_2 = Instance(
     input=SampleQuestionInput(
+        difficulty_level=DifficultyLevel.MEDIUM,
         topic="Simplifying Trigonometric Expressions",
         chapter_overview="Teaches advanced techniques for reducing complex trigonometric expressions using known identities and algebra."
     ),
@@ -537,6 +543,7 @@ param_set_4 = {
 
 QUESTION_ICL_EXAMPLE_3 = Instance(
     input=SampleQuestionInput(
+        difficulty_level=DifficultyLevel.EASY,
         topic="Calculating Mean (Assumed Mean Method)",
         chapter_overview="Teaches how to use the assumed mean method to simplify the calculation of the mean, especially with large data sets."
     ),
@@ -779,19 +786,19 @@ param_set_4 = {
 
 QUESTION_ICL_MESSAGES = [{
     "role": "user",
-    "content": TOPIC_ONLY_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_1.input.topic, result_type="symbolic or expression")
+    "content": TOPIC_ONLY_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_1.input.topic, result_type="symbolic or expression", difficulty_level=QUESTION_ICL_EXAMPLE_1.input.difficulty_level)
 }, {
     "role": "assistant",
     "content": '\n'.join([QUESTION_ICL_EXAMPLE_1.output.thoughts, QUESTION_ICL_EXAMPLE_1.output.question, QUESTION_ICL_EXAMPLE_1.output.code])
 }, {
     "role": "user",
-    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_2.input.topic, chapter_overview=QUESTION_ICL_EXAMPLE_2.input.chapter_overview, result_type="symbolic or expression")
+    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_2.input.topic, chapter_overview=QUESTION_ICL_EXAMPLE_2.input.chapter_overview, result_type="symbolic or expression", difficulty_level=QUESTION_ICL_EXAMPLE_2.input.difficulty_level)
 }, {
     "role": "assistant",
     "content": '\n'.join([QUESTION_ICL_EXAMPLE_2.output.thoughts, QUESTION_ICL_EXAMPLE_2.output.question, QUESTION_ICL_EXAMPLE_2.output.code])
 }, {
     "role": "user",
-    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_3.input.topic, chapter_overview=QUESTION_ICL_EXAMPLE_3.input.chapter_overview, result_type="symbolic or expression")
+    "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(topic=QUESTION_ICL_EXAMPLE_3.input.topic, chapter_overview=QUESTION_ICL_EXAMPLE_3.input.chapter_overview, result_type="symbolic or expression", difficulty_level=QUESTION_ICL_EXAMPLE_3.input.difficulty_level)
 }, {
     "role": "assistant",
     "content": '\n'.join([QUESTION_ICL_EXAMPLE_3.output.thoughts, QUESTION_ICL_EXAMPLE_3.output.question, QUESTION_ICL_EXAMPLE_3.output.code])

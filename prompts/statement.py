@@ -1,4 +1,4 @@
-STATEMENT_PROMPT = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a chapter overview and topic, generate:
+STATEMENT_PROMPT = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a topic, optional chapter overview and a difficulty level, generate:
 
 1. First, analyze the mathematical concepts using `<thoughts>` XML tags:
 <thoughts>
@@ -7,6 +7,10 @@ STATEMENT_PROMPT = '''You are a specialized mathematics question generator for C
 - Problem-solving patterns and approaches
 - Common misconceptions and incorrect reasoning
 - Common student errors and plausible distractors
+- Question complexity and scaffolding based on provided difficulty level:
+ * `easy`: Direct application of single concept, basic calculations and simple reasoning
+ * `medium`: Multi-step problems combining 2-3 concepts with moderate computations
+ * `hard`: Problems requiring thorough understanding of multiple concepts, careful reasoning and detailed calculations suitable for 10th grade
 </thoughts>
 
 2. Generate a clear mathematical question in `<question>` XML tag:

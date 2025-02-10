@@ -94,3 +94,6 @@ def remove_python_comments(text):
     from a string of Python code.
     """
     return re.sub(r'\s*#.*', '', text)
+
+def remove_print_statements(text):
+    return re.sub(r'print\s*\([^)]*\)', '', text)

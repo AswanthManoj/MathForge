@@ -1,3 +1,4 @@
+import asyncio
 import sympy as sp
 import numpy as np
 import json, random
@@ -8,17 +9,14 @@ from typing import List, Optional
 from prompts.expression import (
 QUESTION_ICL_MESSAGES, PARAMETER_ICL_MESSAGES)
 from pydantic import BaseModel, field_validator
+from concurrent.futures import ThreadPoolExecutor
 from prompts import (NUMERICAL_PARAMETER_PROMPT,
 NUMERICAL_QUESTION_PROMPT, ParameterGeneratorOutput, STATEMENT_PROMPT,
 CodeGeneratorOutput, EXPRESSION_PARAMETER_PROMPT, EXPRESSION_QUESTION_PROMPT,
-extract_generator_content, extract_parameter_content, remove_python_comments)
+extract_generator_content, extract_parameter_content, remove_print_statements)
 from logic.llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
-from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE
+from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE, DifficultyLevel, MCQType
 
-class MCQType(str, Enum):
-    NUMERICAL = 'numerical'
-    SYMBOLIC = 'symbolic'
-    STATEMENT = 'statement'
 
 class SecurityException(Exception):
     pass
@@ -60,6 +58,7 @@ class MathU:
         self, 
         max_tokens: int = 3049,
         temperature: float = 0.3,
+        code_execution_timeout: int = 5,
         google: GoogleConfig | None = None,
         together: TogetherConfig | None = None,
         anthropic: AnthropicConfig | None = None,
@@ -73,19 +72,15 @@ class MathU:
             anthropic=anthropic,
             provider_priority=provider_priority
         )
+        self.code_execution_timeout = code_execution_timeout
         
-    def safe_exec(self, code, disallowed_names=None, disallowed_global_vars=None):
+    async def safe_exec(self, code, timeout: int = 5, disallowed_names=None, disallowed_global_vars=None):
         """
-        Executes Python code in a restricted environment with security checks.
-        
-        Performs AST-based analysis to prevent:
-        - Use of dangerous built-ins (eval, exec, etc.)
-        - Access to system modules (os, sys, etc.) 
-        - Use of dunder methods
-        - Unauthorized imports
+        Executes Python code in a restricted environment with security checks and timeout.
         
         Args:
             code (str): Python code to execute
+            timeout (int): Maximum execution time in seconds
             disallowed_names (list): Names that cannot be used in the code
             disallowed_global_vars (dict): Global variables to exclude from execution context
             
@@ -94,6 +89,7 @@ class MathU:
             
         Raises:
             SecurityException: If code contains dangerous operations
+            TimeoutError: If code execution exceeds timeout
         """
         def analyze_ast(node, disallowed_names):
             """
@@ -115,36 +111,81 @@ class MathU:
                         raise SecurityException(f"Access to dunder method not allowed: {node.attr}")
             for child in ast.iter_child_nodes(node):
                 analyze_ast(child, disallowed_names)
-        try:
-            if disallowed_names is None:
-                disallowed_names = {
-                    'eval', 'exec', 'compile', 'open', 'system', 'os', 
-                    'subprocess', 'sys', '__import__'
-                }
+
+        def execute_code():
+            nonlocal disallowed_names, disallowed_global_vars, code
+            try:
+                if disallowed_names is None:
+                    disallowed_names = {
+                        'eval', 'exec', 'compile', 'open', 'system', 'os', 
+                        'subprocess', 'sys', '__import__'
+                    }
+                    
+                tree = ast.parse(code)
+                analyze_ast(tree, disallowed_names)
                 
-            tree = ast.parse(code)
-            analyze_ast(tree, disallowed_names)
-            
-            local_vars = {}
-            globals_copy = globals().copy()
-            
-            if disallowed_global_vars:
-                for name in disallowed_global_vars:
-                    globals_copy.pop(name, None)
-            
-            compiled_code = compile(tree, '<string>', 'exec')
-            exec(compiled_code, globals_copy, local_vars)
-            
-            return local_vars
-            
-        except SecurityException as e:
-            print(f"Security violation: {str(e)}")
-            return None
-        except Exception as e:
-            print(f"Execution error: {str(e)}")
-            return None
+                local_vars = {}
+                globals_copy = globals().copy()
+                
+                if disallowed_global_vars:
+                    for name in disallowed_global_vars:
+                        globals_copy.pop(name, None)
+                
+                compiled_code = compile(tree, '<string>', 'exec')
+                exec(compiled_code, globals_copy, local_vars)
+                
+                return local_vars
+                
+            except SecurityException as e:
+                print(f"Security violation: {str(e)}")
+                return None
+            except Exception as e:
+                print(f"Execution error: {str(e)}")
+                return None
+
+        # async def execute_with_timeout():
+        #     nonlocal timeout
+        #     try:
+        #         loop = asyncio.get_event_loop()
+        #         with ThreadPoolExecutor() as pool:
+        #             result = await asyncio.wait_for(
+        #                 loop.run_in_executor(pool, execute_code),
+        #                 timeout=timeout
+        #             )
+        #         return result
+        #     except asyncio.TimeoutError:
+        #         print(f"Code execution timed out after {timeout} seconds")
+        #         return None
+        #     except Exception as e:
+        #         print(f"Execution error: {str(e)}")
+        #         return None
         
-    async def _generate_numerical_symbolic_problem(self, topic: str, chapter_overview: str|None=None, is_numerical: bool=True, provider: Optional[str] = None) -> FinalOutput:
+        async def execute_with_timeout():
+            result = None
+            try:
+                loop = asyncio.get_event_loop()
+                thread_pool = ThreadPoolExecutor(max_workers=1)
+                future = loop.run_in_executor(thread_pool, execute_code)
+                try:
+                    result = await asyncio.wait_for(future, timeout=timeout)
+                finally:
+                    thread_pool.shutdown(wait=False)
+                return result
+            except asyncio.TimeoutError:
+                print(f"Code execution timed out after {timeout} seconds")
+                return None
+
+        return await execute_with_timeout()
+        
+    async def _generate_numerical_symbolic_problem(
+        self, 
+        topic: str, 
+        chapter_overview: str|None=None, 
+        is_numerical: bool=True, 
+        difficulty_level: DifficultyLevel=DifficultyLevel.EASY,
+        temperature: float = 0.3,
+        provider: Optional[str] = None
+    ) -> FinalOutput:
         async def _generate_question_and_code() -> CodeGeneratorOutput:
             result_type = "numerical" if is_numerical else "symbolic or expression"
             if chapter_overview is not None:
@@ -153,18 +194,23 @@ class MathU:
                     "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
                         topic=topic, 
                         result_type=result_type,
+                        difficulty_level=difficulty_level,
                         chapter_overview=chapter_overview,
                     )
                 }]
             else:
                 messages = [{
                     "role": "user",
-                    "content": TOPIC_ONLY_TEMPLATE.format(topic=topic, result_type=result_type,)
+                    "content": TOPIC_ONLY_TEMPLATE.format(
+                        topic=topic, 
+                        result_type=result_type,
+                        difficulty_level=difficulty_level
+                    )
                 }]
             return await self.llm.generate(
                 provider=provider,
                 max_tokens=self.max_tokens,
-                temperature=self.temperature,
+                temperature=temperature,
                 messages=QUESTION_ICL_MESSAGES + messages,
                 extractor_function=extract_generator_content,
                 system=NUMERICAL_QUESTION_PROMPT if is_numerical else EXPRESSION_QUESTION_PROMPT,
@@ -174,7 +220,7 @@ class MathU:
             return await self.llm.generate(
                 provider=provider,
                 max_tokens=self.max_tokens,
-                temperature=self.temperature,
+                temperature=temperature,
                 system=NUMERICAL_PARAMETER_PROMPT if is_numerical else EXPRESSION_PARAMETER_PROMPT,
                 extractor_function=extract_parameter_content,
                 messages=PARAMETER_ICL_MESSAGES + [{
@@ -184,8 +230,9 @@ class MathU:
             )
             
         code_output = await _generate_question_and_code()
-        solve_function_namespace = self.safe_exec(
-            code_output.code,
+        solve_function_namespace = await self.safe_exec(
+            timeout=self.code_execution_timeout,
+            code=remove_print_statements(code_output.code),
             disallowed_global_vars=['settings', 'llm'],
             disallowed_names=['os', 'sys', 'eval', 'exec'],
         )
@@ -194,8 +241,9 @@ class MathU:
         solve_function = solve_function_namespace.get('solve_problem')
         
         params_output = await _generate_parameters(code_output.code)
-        params_namespace = self.safe_exec(
-            params_output.parameters_code,
+        params_namespace = await self.safe_exec(
+            timeout=self.code_execution_timeout,
+            code=remove_print_statements(params_output.parameters_code),
             disallowed_global_vars=['settings', 'llm'],
             disallowed_names=['os', 'sys', 'eval', 'exec'],
         )
@@ -229,7 +277,14 @@ class MathU:
             thoughts=code_output.thoughts,
         )
         
-    async def _generate_statement_problem(self, topic: str, chapter_overview: str|None=None, provider: Optional[str] = None) -> FinalOutput:
+    async def _generate_statement_problem(
+        self, 
+        topic: str, 
+        chapter_overview: str|None=None, 
+        difficulty_level: DifficultyLevel=DifficultyLevel.EASY,
+        temperature: float = 0.3,
+        provider: Optional[str] = None
+    ) -> FinalOutput:
         async def _generate_question_and_code() -> CodeGeneratorOutput:
             result_type = "numerical" if random.choice([True, False]) else "symbolic or expression"
             if chapter_overview is not None:
@@ -238,26 +293,32 @@ class MathU:
                     "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
                         topic=topic, 
                         result_type=result_type,
+                        difficulty_level=difficulty_level,
                         chapter_overview=chapter_overview,
                     )
                 }]
             else:
                 messages = [{
                     "role": "user",
-                    "content": TOPIC_ONLY_TEMPLATE.format(topic=topic, result_type=result_type,)
+                    "content": TOPIC_ONLY_TEMPLATE.format(
+                        topic=topic, 
+                        result_type=result_type,
+                        difficulty_level=difficulty_level
+                    )
                 }]
             return await self.llm.generate(
                 provider=provider,
                 messages=messages,
                 system=STATEMENT_PROMPT,
                 max_tokens=self.max_tokens,
-                temperature=self.temperature,
+                temperature=temperature,
                 extractor_function=extract_generator_content,
             )
         
         code_output = await _generate_question_and_code()
-        solve_function_namespace = self.safe_exec(
-            code_output.code,
+        solve_function_namespace = await self.safe_exec(
+            timeout=self.code_execution_timeout,
+            code=remove_print_statements(code_output.code),
             disallowed_global_vars=['settings', 'llm'],
             disallowed_names=['os', 'sys', 'eval', 'exec'],
         )
@@ -282,12 +343,39 @@ class MathU:
             thoughts=code_output.thoughts,
         )
         
-    async def generate(self, topic: str, chapter_overview: str|None=None, mcq_type: MCQType=MCQType.NUMERICAL, provider: Optional[str] = None) -> FinalOutput:
+    async def generate(
+        self, 
+        topic: str, 
+        chapter_overview: str|None=None, 
+        mcq_type: MCQType=MCQType.NUMERICAL, 
+        temperature: float|None = None,
+        difficulty_level: DifficultyLevel|None = None,
+        provider: Optional[str] = None
+    ) -> FinalOutput:
+        if temperature is None:
+            temperature = self.temperature
+        if difficulty_level is None:
+            difficulty_level = DifficultyLevel.EASY
+        
         if mcq_type == MCQType.STATEMENT:
-            return await self._generate_statement_problem(topic, chapter_overview, provider=provider)
+            return await self._generate_statement_problem(
+                topic=topic, 
+                provider=provider,
+                temperature=temperature,
+                difficulty_level=difficulty_level,
+                chapter_overview=chapter_overview, 
+            )
+            
         if mcq_type == MCQType.NUMERICAL:
             is_numerical = True
         elif mcq_type == MCQType.SYMBOLIC:
             is_numerical = False
-        return await self._generate_numerical_symbolic_problem(topic, chapter_overview, is_numerical=is_numerical, provider=provider)
+        return await self._generate_numerical_symbolic_problem(
+            topic=topic, 
+            provider=provider,
+            temperature=temperature,
+            is_numerical=is_numerical, 
+            difficulty_level=difficulty_level,
+            chapter_overview=chapter_overview, 
+        )
         

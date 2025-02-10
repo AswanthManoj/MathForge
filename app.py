@@ -1,0 +1,124 @@
+import uvicorn
+from typing import Optional
+from config import get_settings
+from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from logic.sandbox import MathU, MCQType, DifficultyLevel
+from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
+
+app = FastAPI(title="Synth Math Question Generator API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize settings and MathU instance
+settings = get_settings()
+mathu = MathU(
+    max_tokens=settings.max_tokens,
+    temperature=settings.temperature,
+    code_execution_timeout=settings.code_execution_timeout,
+    
+    anthropic=AnthropicConfig(
+        api_key=settings.anthropic_api_key, 
+        model=settings.anthropic_primary_model
+    ),
+    google=GoogleConfig(
+        api_key=settings.google_api_key,
+        model=settings.google_primary_model
+    ),
+    together=TogetherConfig(
+        api_key=settings.together_api_key,
+        model=settings.together_primary_model
+    ),
+    provider_priority=settings.provider_priority
+)
+
+class QuestionRequest(BaseModel):
+    tagname: str = Field(
+        description="The mathematical topic `TagName` for question generation",
+        example="Finding mean from raw data in statistics"
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Optional overview of the chapter context `Description`",
+        example="This chapter covers measures of central tendency including mean, median, and mode"
+    )
+    mcq_type: MCQType = Field(
+        default=MCQType.NUMERICAL,
+        description="Type of multiple choice question. Should be `numerical`, `symbolic` or `statement`",
+        example=MCQType.NUMERICAL
+    )
+    difficulty_level: DifficultyLevel = Field(
+        default=DifficultyLevel.EASY,
+        description="Difficulty level of the question. Should be `easy`, `medium` or `hard`",
+        example=DifficultyLevel.EASY
+    )
+    temperature: Optional[float] = Field(
+        default=None,
+        description="Temperature parameter for LLM generation (0.0 to 1.0)",
+        example=0.3,
+        ge=0.0,
+        le=1.0
+    )
+    provider: Optional[str] = Field(
+        default=None,
+        description="LLM provider to use (`google`, `anthropic`, or `together`)",
+        example="google"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "tagname": "Speeds and Distances",
+                    "description": "Concepts on relative velocity based of with distance, displacement and velocity",
+                    "mcq_type": "numerical",
+                    "difficulty_level": "medium",
+                    "temperature": 0.3,
+                    "provider": "anthropic"
+                },
+                {
+                    "tagname": "Polynomial evaluation",
+                    "description": "Covers how to evaluate the value of a polynomial for a specific input by substituting the value of the variable",
+                    "mcq_type": "symbolic",
+                    "difficulty_level": "hard",
+                    "temperature": 0.5,
+                    "provider": "google"
+                }
+            ]
+        }
+    }
+
+@app.post("/generate-question")
+async def generate_question(request: QuestionRequest):
+    try:
+        result = await mathu.generate(
+            topic=request.tagname,
+            chapter_overview=request.description,
+            mcq_type=request.mcq_type,
+            difficulty_level=request.difficulty_level,
+            temperature=request.temperature,
+            provider=request.provider
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        workers=1
+    )
