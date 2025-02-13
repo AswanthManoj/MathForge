@@ -22,18 +22,32 @@ class SecurityException(Exception):
     pass
 
 class Option(BaseModel):
-    is_correct:    bool = False
-    input_params:  Optional[dict] = None
-    output_result: Optional[int|float|str] = None
+    is_correct: bool = False
+    input_params: Optional[dict] = None
+    output_result: Optional[Union[int, float, str]] = None
 
     @field_validator('output_result')
     @classmethod
-    def round_float_result(cls, value):
+    def format_output_result(cls, value):
         if isinstance(value, float):
             return round(value, 5)
-        if isinstance(value, sympy.Expr):
+        if isinstance(value, (sympy.Symbol, sympy.Expr)):
             return sympy.latex(value)
         return value
+
+    @field_validator('input_params')
+    @classmethod
+    def format_input_params(cls, value):
+        if value is None:
+            return value
+        # Convert any SymPy objects in input parameters to strings
+        formatted_params = {}
+        for k, v in value.items():
+            if isinstance(v, (sympy.Symbol, sympy.Expr)):
+                formatted_params[k] = sympy.latex(v)
+            else:
+                formatted_params[k] = v
+        return formatted_params
 
 class FinalOutput(BaseModel):
     options:  List[Option]
