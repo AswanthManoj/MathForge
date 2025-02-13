@@ -27,10 +27,11 @@ mathu = MathU(
 )
 
 
-async def generate_data(tagname: str, description: Optional[str] = None, max_retries: int = 3, max_questions: int = 10, output_filename: str="output_result.json") -> Dict:
+async def generate_data(tagname: str, sub_topic: Optional[str] = None, description: Optional[str] = None, max_retries: int = 3, max_questions: int = 10, output_filename: str="output_result.json") -> Dict:
     results = {
         "questions": [],
         "tagname": tagname,
+        "sub_topic": sub_topic,
         "description": description,
     }
     filename = "output_result.json"
@@ -45,6 +46,7 @@ async def generate_data(tagname: str, description: Optional[str] = None, max_ret
                 try:
                     output = await mathu.generate(
                         topic=tagname,
+                        sub_topic=sub_topic,
                         chapter_overview=description,
                         mcq_type=mcq_type,
                         temperature=random.choice([0.2, 0.3, 0.4, 0.5, 0.6]),
@@ -93,6 +95,7 @@ async def main():
     await generate_data(
         tagname="Practical Applications of Heights and Distances",
         description="Shows how trigonometry can be used in various fields such as navigation, surveying and astronomy to measure heights and distances in real world situations.",
+        sub_topic=None,
         max_retries=4,
         max_questions=10,
         output_filename="output_result.json"

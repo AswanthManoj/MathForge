@@ -49,6 +49,11 @@ class QuestionRequest(BaseModel):
         description="Optional overview of the chapter context `Description`",
         example="This chapter covers measures of central tendency including mean, median, and mode"
     )
+    sub_topic: Optional[str] = Field(
+        default=None,
+        description="Optional sub-topic to focus the question on to this specific concept",
+        example="Measures of central tendency mean"
+    )
     mcq_type: MCQType = Field(
         default=MCQType.NUMERICAL,
         description="Type of multiple choice question. Should be `numerical`, `symbolic` or `statement`",
@@ -61,10 +66,8 @@ class QuestionRequest(BaseModel):
     )
     temperature: Optional[float] = Field(
         default=None,
-        description="Temperature parameter for LLM generation (0.0 to 1.0)",
+        description="Temperature parameter for LLM generation (0.2 to 1.0)",
         example=0.3,
-        ge=0.0,
-        le=1.0
     )
     provider: Optional[str] = Field(
         default=None,
@@ -76,19 +79,30 @@ class QuestionRequest(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "tagname": "Speeds and Distances",
-                    "description": "Concepts on relative velocity based of with distance, displacement and velocity",
+                    "tagname": "Practical Applications of Heights and Distances",
+                    "description": "Shows how trigonometry can be used in various fields such as navigation, surveying and astronomy to measure heights and distances in real world situations.",
+                    "sub_topic": "Application of similarity of triangles in height and distance problems",
                     "mcq_type": "numerical",
-                    "difficulty_level": "medium",
+                    "difficulty_level": "easy",
                     "temperature": 0.3,
-                    "provider": "anthropic"
+                    "provider": "together"
                 },
                 {
-                    "tagname": "Polynomial evaluation",
-                    "description": "Covers how to evaluate the value of a polynomial for a specific input by substituting the value of the variable",
+                    "tagname": "Circles and Geometric Constructions",
+                    "description": "Investigates the relationships between tangent lines, secant lines, and circles, including theorems about their angles and lengths, while developing geometric reasoning and construction skills using compass and ruler.",
+                    "sub_topic": "Tangents, Secants, and Their Properties",
                     "mcq_type": "symbolic",
-                    "difficulty_level": "hard",
+                    "difficulty_level": "medium",
                     "temperature": 0.5,
+                    "provider": "google"
+                },
+                {
+                    "tagname": "Coordinate Geometry Fundamentals",
+                    "description": "Covers the application of algebraic methods to geometric problems, including finding distances between points, dividing line segments, and determining areas of geometric figures using coordinate systems.",
+                    "sub_topic": "Distance Formula and Section Formula",
+                    "mcq_type": "statement",
+                    "difficulty_level": "hard",
+                    "temperature": 0.4,
                     "provider": "google"
                 }
             ]
@@ -100,6 +114,7 @@ async def generate_question(request: QuestionRequest):
     try:
         result = await mathu.generate(
             topic=request.tagname,
+            sub_topic=request.sub_topic,
             chapter_overview=request.description,
             mcq_type=request.mcq_type,
             difficulty_level=request.difficulty_level,

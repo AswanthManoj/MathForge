@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Union
 import math, ast, sympy, numpy
 from typing import List, Optional
+from prompts.statement import ICL_MESSAGE
 from prompts.expression import (
 QUESTION_ICL_MESSAGES, PARAMETER_ICL_MESSAGES)
 from pydantic import BaseModel, field_validator
@@ -201,6 +202,7 @@ class MathU:
         provider: Optional[str] = None
     ) -> FinalOutput:
         async def _generate_question_and_code() -> CodeGeneratorOutput:
+            nonlocal is_numerical
             result_type = "numerical" if is_numerical else "symbolic or expression"
             if chapter_overview is not None:
                 messages = [{
@@ -231,6 +233,7 @@ class MathU:
             )
         
         async def _generate_parameters(code: str) -> ParameterGeneratorOutput:
+            nonlocal is_numerical
             return await self.llm.generate(
                 provider=provider,
                 max_tokens=self.max_tokens,
@@ -301,8 +304,9 @@ class MathU:
     ) -> FinalOutput:
         async def _generate_question_and_code() -> CodeGeneratorOutput:
             result_type = "numerical" if random.choice([True, False]) else "symbolic or expression"
+            messages = ICL_MESSAGE
             if chapter_overview is not None:
-                messages = [{
+                messages = messages + [{
                     "role": "user",
                     "content": TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE.format(
                         topic=topic, 
@@ -312,7 +316,7 @@ class MathU:
                     )
                 }]
             else:
-                messages = [{
+                messages = messages + [{
                     "role": "user",
                     "content": TOPIC_ONLY_TEMPLATE.format(
                         topic=topic, 
@@ -360,6 +364,7 @@ class MathU:
     async def generate(
         self, 
         topic: str, 
+        sub_topic: str|None=None,
         chapter_overview: str|None=None, 
         mcq_type: MCQType=MCQType.NUMERICAL, 
         temperature: float|None = None,
@@ -370,9 +375,12 @@ class MathU:
             temperature = self.temperature
         if difficulty_level is None:
             difficulty_level = DifficultyLevel.EASY
+        if sub_topic is not None and chapter_overview is not None:
+            chapter_overview = chapter_overview + f'\nQuestion must be from the following sub topic: "{sub_topic}".'
+
         
         if mcq_type == MCQType.STATEMENT:
-            return await self._generate_statement_problem(
+            output = await self._generate_statement_problem(
                 topic=topic, 
                 provider=provider,
                 temperature=temperature,
@@ -382,9 +390,9 @@ class MathU:
             
         if mcq_type == MCQType.NUMERICAL:
             is_numerical = True
-        elif mcq_type == MCQType.SYMBOLIC:
+        else:
             is_numerical = False
-        return await self._generate_numerical_symbolic_problem(
+        output = await self._generate_numerical_symbolic_problem(
             topic=topic, 
             provider=provider,
             temperature=temperature,
@@ -392,4 +400,17 @@ class MathU:
             difficulty_level=difficulty_level,
             chapter_overview=chapter_overview, 
         )
-        
+        all_options = []
+        all_options_values = []
+        options_map = {option.output_result: option for option in output.options}
+        # we need to get the correct option and then the wrong options in a list and we should be able to ensure unique wrong options are there something like list
+        for value, option in options_map.items():
+            if option.is_correct:
+                all_options.append(option)
+                all_options_values.append(value)
+            elif option.output_result not in all_options_values:
+                all_options.append(option)
+                all_options_values.append(value)
+        output.options = all_options
+        return output
+

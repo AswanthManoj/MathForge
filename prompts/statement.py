@@ -1,3 +1,7 @@
+from prompts.base import (PARAMETERS_TEMPLATE,
+TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, Instance, DifficultyLevel,
+SampleParameterInput, SampleParameterOutput, SampleQuestionInput, SampleQuestionOutput)
+
 STATEMENT_PROMPT = '''You are a specialized mathematics question generator for CBSE 10th grade. Given a topic, optional chapter overview and a difficulty level, generate:
 
 1. First, analyze the mathematical concepts using `<thoughts>` XML tags:
@@ -133,3 +137,91 @@ Guidelines:
 * Each distractor should represent a different type of error
 * Keep similar structure between correct and incorrect statements
 '''.strip()
+
+ICL_EXAMPLE = Instance(
+    input=SampleQuestionInput(
+        topic="Practical Applications of Heights and Distances",
+        chapter_overview="""Shows how trigonometry can be used in various fields such as navigation, surveying and astronomy to measure heights and distances in real world situations.
+Question must be from the following sub topic: "Application of similarity of triangles in height and distance problems".""",
+        difficulty_level=DifficultyLevel.MEDIUM
+    ),
+    output=SampleQuestionOutput(
+        thoughts="""- Core concepts: Similar triangles, trigonometric ratios (tan θ), angle of elevation
+- Key relationships: Corresponding angles in similar triangles are equal
+- Problem-solving patterns: Creating similar triangles using eye level and object height
+- Common misconceptions: 
+  * Confusing angle of elevation with angle of depression
+  * Incorrect identification of corresponding sides
+- Plausible distractors can focus on:
+  * Wrong trigonometric ratio selection
+  * Calculation errors in similar triangle proportions
+  * Misidentification of parallel lines
+- For medium difficulty: Combine angle of elevation with similar triangles requiring 2-3 steps
+""",
+    question="""A surveyor stands at point A, 50 meters away from the foot of a tower. She observes the top of the tower with an angle of elevation of 30°. When she walks 20 meters closer to the tower to point B, the angle of elevation increases to 45°. If her eye level is 1.6 meters above the ground, find the height of the tower.
+[Use $\tan(30°) = \frac{1}{\sqrt{3}}$ and $\tan(45°) = 1$]""",
+    code = '''
+```python
+import math
+import sympy as sp
+from typing import Dict, List, Union, Tuple
+
+def solve_problem(distance_A: float, distance_B: float, eye_level: float, 
+                 tan_30: float, tan_45: float) -> Tuple[float, str, List[str]]:
+    """
+    Solves the tower height problem using angles of elevation from two points.
+    
+    Args:
+        distance_A: Distance from point A to tower (m)
+        distance_B: Distance from point B to tower (m)
+        eye_level: Height of surveyor's eyes (m)
+        tan_30: Tangent of 30 degrees
+        tan_45: Tangent of 45 degrees
+    
+    Returns:
+        Tuple of (height, verified_statement, distractors)
+    """
+    # Calculate heights from both positions
+    height_from_A = distance_A * tan_30 + eye_level
+    height_from_B = distance_B * tan_45 + eye_level
+    
+    # Heights should be equal - use average to handle floating point
+    tower_height = (height_from_A + height_from_B) / 2
+    
+    # Round to 1 decimal place for clarity
+    tower_height = round(tower_height, 1)
+    
+    verified = (f"The tower height is {tower_height} meters since the angles of "
+               f"elevation of 30° and 45° from distances of 50m and 30m give equal heights")
+    
+    distractors = [
+        # Wrong trig ratio (using sin instead of tan)
+        f"The tower height is {round(50 * 0.5 + 1.6, 1)} meters since sine of 30° is 0.5",
+        # Forgot to add eye level
+        f"The tower height is {round(50 / math.sqrt(3), 1)} meters since we only need to use tan(30°)",
+        # Used wrong distance with 45° angle
+        f"The tower height is {round(50 * 1 + 1.6, 1)} meters since tan(45°) equals 1",
+        # Added distances instead of using closer distance
+        f"The tower height is {round(70 / math.sqrt(3) + 1.6, 1)} meters since we use the total distance of 70m"
+    ]
+    
+    return tower_height, verified, distractors
+
+# Actual parameters
+actual_params = {
+    'distance_A': 50,  # meters from point A
+    'distance_B': 30,  # meters from point B
+    'eye_level': 1.6,  # meters
+    'tan_30': 1/math.sqrt(3),  # tan(30°)
+    'tan_45': 1  # tan(45°)
+}
+```'''.strip())
+)
+
+ICL_MESSAGE = [{
+    "role": "user",
+    "content": TOPIC_ONLY_TEMPLATE.format(topic=ICL_EXAMPLE.input.topic, result_type="statement", difficulty_level=ICL_EXAMPLE.input.difficulty_level)
+}, {
+    "role": "assistant",
+    "content": '\n'.join([ICL_EXAMPLE.output.thoughts, ICL_EXAMPLE.output.question, ICL_EXAMPLE.output.code])
+}]
