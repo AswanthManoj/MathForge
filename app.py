@@ -2,10 +2,10 @@ import uvicorn
 from typing import Optional
 from config import get_settings
 from pydantic import BaseModel, Field
+from src.sandbox import MathU, MCQType
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from logic.sandbox import MathU, MCQType, DifficultyLevel
-from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
+from src.llm_connector import GoogleConfig, AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig
 
 app = FastAPI(title="Synth Math Question Generator API")
 
@@ -22,8 +22,6 @@ settings = get_settings()
 mathu = MathU(
     max_tokens=settings.max_tokens,
     temperature=settings.temperature,
-    code_execution_timeout=settings.code_execution_timeout,
-    
     anthropic=AnthropicConfig(
         api_key=settings.anthropic_api_key, 
         model=settings.anthropic_primary_model
@@ -36,33 +34,26 @@ mathu = MathU(
         api_key=settings.together_api_key,
         model=settings.together_primary_model
     ),
+    openai=OpenAIConfig(
+        api_key=settings.openai_api_key,
+        model=settings.openai_primary_model
+    ),
+    groq=GroqConfig(
+        api_key=settings.groq_api_key,
+        model=settings.groq_primary_model
+    ),
     provider_priority=settings.provider_priority
 )
 
 class QuestionRequest(BaseModel):
-    tagname: str = Field(
-        description="The mathematical topic `TagName` for question generation",
-        example="Finding mean from raw data in statistics"
-    )
-    description: Optional[str] = Field(
-        default=None,
-        description="Optional overview of the chapter context `Description`",
-        example="This chapter covers measures of central tendency including mean, median, and mode"
-    )
-    sub_topic: Optional[str] = Field(
-        default=None,
-        description="Optional sub-topic to focus the question on to this specific concept",
-        example="Measures of central tendency mean"
+    question: str = Field(
+        ..., 
+        description="The question thats needed to be solved for",
     )
     mcq_type: MCQType = Field(
         default=MCQType.NUMERICAL,
         description="Type of multiple choice question. Should be `numerical`, `symbolic` or `statement`",
         example=MCQType.NUMERICAL
-    )
-    difficulty_level: DifficultyLevel = Field(
-        default=DifficultyLevel.EASY,
-        description="Difficulty level of the question. Should be `easy`, `medium` or `hard`",
-        example=DifficultyLevel.EASY
     )
     temperature: Optional[float] = Field(
         default=None,
@@ -74,36 +65,35 @@ class QuestionRequest(BaseModel):
         description="LLM provider to use (`google`, `anthropic`, or `together`)",
         example="google"
     )
+    verify_solution: bool = Field(
+        default=False,
+        description="Enable by setting True to add a solution code verification layer",
+        example=False
+    )
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "tagname": "Practical Applications of Heights and Distances",
-                    "description": "Shows how trigonometry can be used in various fields such as navigation, surveying and astronomy to measure heights and distances in real world situations.",
-                    "sub_topic": "Application of similarity of triangles in height and distance problems",
+                    "question": "A ladder 10 meters long rests against a vertical wall. The foot of the ladder is 6 meters from the wall. Find the height reached by the ladder on the wall.",
                     "mcq_type": "numerical",
-                    "difficulty_level": "easy",
                     "temperature": 0.3,
-                    "provider": "together"
+                    "provider": "together",
+                    "verify_solution": True
                 },
                 {
-                    "tagname": "Circles and Geometric Constructions",
-                    "description": "Investigates the relationships between tangent lines, secant lines, and circles, including theorems about their angles and lengths, while developing geometric reasoning and construction skills using compass and ruler.",
-                    "sub_topic": "Tangents, Secants, and Their Properties",
+                    "question": "In a circle with center O, prove that the perpendicular from the center to a chord bisects the chord.",
                     "mcq_type": "symbolic",
-                    "difficulty_level": "medium",
                     "temperature": 0.5,
-                    "provider": "google"
+                    "provider": "google",
+                    "verify_solution": False
                 },
                 {
-                    "tagname": "Coordinate Geometry Fundamentals",
-                    "description": "Covers the application of algebraic methods to geometric problems, including finding distances between points, dividing line segments, and determining areas of geometric figures using coordinate systems.",
-                    "sub_topic": "Distance Formula and Section Formula",
+                    "question": "If the distance between points A(3, 4) and B(6, 8) is 5 units, determine if this statement is true or false.",
                     "mcq_type": "statement",
-                    "difficulty_level": "hard",
                     "temperature": 0.4,
-                    "provider": "google"
+                    "provider": "google",
+                    "verify_solution": True
                 }
             ]
         }
@@ -112,14 +102,12 @@ class QuestionRequest(BaseModel):
 @app.post("/generate-question")
 async def generate_question(request: QuestionRequest):
     try:
-        result = await mathu.generate(
-            topic=request.tagname,
-            sub_topic=request.sub_topic,
-            chapter_overview=request.description,
+        result = await mathu.generate_solution(
+            question=request.question,
             mcq_type=request.mcq_type,
-            difficulty_level=request.difficulty_level,
+            provider=request.provider,
             temperature=request.temperature,
-            provider=request.provider
+            verify_solution=request.verify_solution
         )
         return result
     except Exception as e:
