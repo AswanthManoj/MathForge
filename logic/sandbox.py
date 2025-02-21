@@ -272,11 +272,6 @@ class MathU:
             )
             
         code_output = await _generate_question_and_code()
-        if verify_solution:
-            verified_code_output = await _verify_generated_code(code_output)
-            code_output.code = verified_code_output.code
-            code_output.thoughts = verified_code_output.thoughts
-
         solve_function_namespace = await self.safe_exec(
             timeout=self.code_execution_timeout,
             code=remove_print_statements(code_output.code),
@@ -284,9 +279,28 @@ class MathU:
             disallowed_names=['os', 'sys', 'eval', 'exec'],
         )
         
-        actual_params = solve_function_namespace.get('actual_params')
+        actual_params = solve_function_namespace.get('actual_params', {})
         solve_function = solve_function_namespace.get('solve_problem')
-        
+
+        if verify_solution:
+            verified_code_output = await _verify_generated_code(code_output)
+            verified_solve_function_namespace = await self.safe_exec(
+                timeout=self.code_execution_timeout,
+                code=remove_print_statements(verified_code_output.code),
+                disallowed_global_vars=['settings', 'llm'],
+                disallowed_names=['os', 'sys', 'eval', 'exec'],
+            )
+            verified_actual_params = None
+            try:
+                verified_actual_params = verified_solve_function_namespace.get('actual_params', {})
+            except Exception:
+                pass
+            actual_params = actual_params if verified_actual_params is None else verified_actual_params
+            solve_function = verified_solve_function_namespace.get('solve_problem')
+            code_output.code = verified_code_output.code
+            code_output.thoughts = verified_code_output.thoughts
+            solve_function_namespace = verified_solve_function_namespace
+            
         params_output = await _generate_parameters(code_output.code)
         params_namespace = await self.safe_exec(
             timeout=self.code_execution_timeout,

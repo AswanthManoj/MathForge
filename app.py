@@ -74,6 +74,11 @@ class QuestionRequest(BaseModel):
         description="LLM provider to use (`google`, `anthropic`, or `together`)",
         example="google"
     )
+    verify_solution: bool = Field(
+        default=False,
+        description="Enable by setting True to add a solution code verification layer",
+        example=False
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -85,7 +90,8 @@ class QuestionRequest(BaseModel):
                     "mcq_type": "numerical",
                     "difficulty_level": "easy",
                     "temperature": 0.3,
-                    "provider": "together"
+                    "provider": "together",
+                    "verify_solution": True
                 },
                 {
                     "tagname": "Circles and Geometric Constructions",
@@ -94,7 +100,8 @@ class QuestionRequest(BaseModel):
                     "mcq_type": "symbolic",
                     "difficulty_level": "medium",
                     "temperature": 0.5,
-                    "provider": "google"
+                    "provider": "google",
+                    "verify_solution": False
                 },
                 {
                     "tagname": "Coordinate Geometry Fundamentals",
@@ -103,7 +110,8 @@ class QuestionRequest(BaseModel):
                     "mcq_type": "statement",
                     "difficulty_level": "hard",
                     "temperature": 0.4,
-                    "provider": "google"
+                    "provider": "google",
+                    "verify_solution": True
                 }
             ]
         }
@@ -111,7 +119,7 @@ class QuestionRequest(BaseModel):
 
 @app.post("/generate-question")
 async def generate_question(request: QuestionRequest):
-    try:
+    # try:
         result = await mathu.generate(
             topic=request.tagname,
             sub_topic=request.sub_topic,
@@ -119,11 +127,12 @@ async def generate_question(request: QuestionRequest):
             mcq_type=request.mcq_type,
             difficulty_level=request.difficulty_level,
             temperature=request.temperature,
-            provider=request.provider
+            provider=request.provider,
+            verify_solution=request.verify_solution
         )
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():
