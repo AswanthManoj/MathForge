@@ -1,7 +1,7 @@
 import asyncio
 from config import get_settings
 from logic.sandbox import MathU, MCQType, DifficultyLevel
-from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
+from logic.llm_connector import GoogleConfig, AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig
 import random
 import json
 from typing import Optional, Dict
@@ -22,6 +22,14 @@ mathu = MathU(
     together=TogetherConfig(
         api_key=settings.together_api_key,
         model=settings.together_primary_model
+    ),
+    openai=OpenAIConfig(
+        api_key=settings.openai_api_key,
+        model=settings.openai_primary_model
+    ),
+    groq=GroqConfig(
+        api_key=settings.groq_api_key,
+        model=settings.groq_primary_model
     ),
     provider_priority=settings.provider_priority
 )

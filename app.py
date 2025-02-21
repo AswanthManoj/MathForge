@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from logic.sandbox import MathU, MCQType, DifficultyLevel
-from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
+from logic.llm_connector import GoogleConfig, AnthropicConfig, MistralConfig, TogetherConfig, OpenAIConfig, GroqConfig
 
 app = FastAPI(title="Synth Math Question Generator API")
 
@@ -24,10 +24,10 @@ mathu = MathU(
     temperature=settings.temperature,
     code_execution_timeout=settings.code_execution_timeout,
     
-    anthropic=AnthropicConfig(
-        api_key=settings.anthropic_api_key, 
-        model=settings.anthropic_primary_model
-    ),
+    # anthropic=AnthropicConfig(
+    #     api_key=settings.anthropic_api_key, 
+    #     model=settings.anthropic_primary_model
+    # ),
     google=GoogleConfig(
         api_key=settings.google_api_key,
         model=settings.google_primary_model
@@ -35,6 +35,18 @@ mathu = MathU(
     together=TogetherConfig(
         api_key=settings.together_api_key,
         model=settings.together_primary_model
+    ),
+    openai=OpenAIConfig(
+        api_key=settings.openai_api_key,
+        model=settings.openai_primary_model
+    ),
+    groq=GroqConfig(
+        api_key=settings.groq_api_key,
+        model=settings.groq_primary_model
+    ),
+    mistral=MistralConfig(
+        api_key=settings.mistral_api_key,
+        model=settings.mistral_primary_model
     ),
     provider_priority=settings.provider_priority
 )

@@ -21,6 +21,7 @@ STATEMENT_PROMPT = '''You are a specialized mathematics question generator for C
 <question>
 [Write a precise, unambiguous question that:
 - Uses proper mathematical notation with LaTeX ($...$ for inline math)
+- If the question contains tables, ensure that proper github flavored markdown table syntax is used
 - May involve geometric figures, algebraic expressions, or numerical values
 - Clearly states all given information
 - Asks for a conclusion that can be expressed as a statement

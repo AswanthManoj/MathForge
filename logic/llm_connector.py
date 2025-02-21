@@ -1,7 +1,12 @@
+import os
+import random
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel, Field
 from typing import List, Callable, Optional
+
+from logic.get_env_array import get_env_array
+
 
 class LLMMessage(BaseModel):
     role:              str = "assistant"
@@ -22,6 +27,15 @@ class GoogleConfig(LLMProviderConfig):
 class TogetherConfig(LLMProviderConfig):
     pass
 
+class OpenAIConfig(LLMProviderConfig):
+    pass
+
+class GroqConfig(LLMProviderConfig):
+    pass
+
+class MistralConfig(LLMProviderConfig):
+    pass
+
 class LLMConnector:
     """
     A connector class that manages interactions with multiple LLM providers.
@@ -40,11 +54,17 @@ class LLMConnector:
         anthropic: Optional[AnthropicConfig] = None,
         google: Optional[GoogleConfig] = None,
         together: Optional[TogetherConfig] = None,
-        provider_priority: List[str] = ["anthropic", "google", "together"]
+        openai: Optional[OpenAIConfig] = None,
+        groq:  Optional[GroqConfig] = None, 
+        mistral:  Optional[MistralConfig] = None, 
+        provider_priority: List[str] = ["anthropic", "google", "together", "groq", "mistral"]
     ) -> None:
         self.google = google
         self.together = together
         self.anthropic = anthropic
+        self.openai = openai
+        self.groq = groq
+        self.mistral = mistral
         self.provider_priority = [p for p in provider_priority if getattr(self, p) is not None]
         
         if not self.provider_priority:
@@ -66,7 +86,21 @@ class LLMConnector:
                 api_key=self.google.api_key,
                 base_url="https://generativelanguage.googleapis.com/v1beta/"
             )
-
+        if self.openai:
+            self.clients["openai"] = AsyncOpenAI(
+                api_key=self.openai.api_key,
+                base_url="https://api.openai.com/v1"
+            )
+        if self.groq:
+            self.clients["groq"] = AsyncOpenAI(
+                api_key=self.groq.api_key,
+                base_url="https://api.groq.com/openai/v1"
+            )
+        if self.mistral:
+            self.clients["mistral"] = AsyncOpenAI(
+                api_key=self.mistral.api_key,
+                base_url="https://api.mistral.ai/v1"
+            )
     async def _stream_openai(self, client: AsyncOpenAI, model: str, messages: List[dict], **kwargs):
         """
         Internal method to handle OpenAI-compatible streaming responses.
@@ -231,7 +265,32 @@ class LLMConnector:
                             temperature=temperature,
                         )
                     response_text = response.content[0].text
+                
                 else:
+                    if current_provider == "groq":
+                        api_keys_array = get_env_array("GROQ_API_KEYS")
+                        if api_keys_array:   
+                            _api_key = random.choice(api_keys_array)
+                            print("Using API Key: ", _api_key)
+                            client: AsyncOpenAI = AsyncOpenAI(
+                                api_key=_api_key,
+                                base_url="https://api.groq.com/openai/v1"
+                            )
+                        else:
+                            print("GROQ_API_KEYS environment variable not found or invalid string array. Using default API key.")
+                            
+                    if current_provider == "mistral":
+                        api_keys_array = get_env_array("MISTRAL_API_KEYS")
+                        if api_keys_array:   
+                            _api_key = random.choice(api_keys_array)
+                            print("Using API Key: ", _api_key)
+                            client: AsyncOpenAI = AsyncOpenAI(
+                                api_key=_api_key,
+                                base_url="https://api.mistral.ai/v1"
+                            )
+                        else:
+                            print("MISTRAL_API_KEYS environment variable not found or invalid string array. Using default API key.")
+                                
                     if system:
                         messages = [{"role": "system", "content": system}] + messages
                     

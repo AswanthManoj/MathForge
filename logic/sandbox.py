@@ -15,7 +15,7 @@ from prompts import (NUMERICAL_PARAMETER_PROMPT,
 NUMERICAL_QUESTION_PROMPT, ParameterGeneratorOutput, STATEMENT_PROMPT,
 CodeGeneratorOutput, EXPRESSION_PARAMETER_PROMPT, EXPRESSION_QUESTION_PROMPT,
 extract_generator_content, extract_parameter_content, remove_print_statements)
-from logic.llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
+from logic.llm_connector import GroqConfig, LLMConnector, AnthropicConfig, GoogleConfig, MistralConfig, TogetherConfig, OpenAIConfig
 from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE, DifficultyLevel, MCQType
 
 
@@ -77,7 +77,10 @@ class MathU:
         google: GoogleConfig | None = None,
         together: TogetherConfig | None = None,
         anthropic: AnthropicConfig | None = None,
-        provider_priority: List[str] = ["anthropic", "google", "together"]
+        openai: OpenAIConfig | None = None,
+        groq: GroqConfig | None = None,
+        mistral: MistralConfig | None = None,
+        provider_priority: List[str] = ["anthropic", "google", "together", "openai", "groq", "mistral"]
     ) -> None:
         self.max_tokens = max_tokens
         self.temperature = temperature
@@ -85,6 +88,9 @@ class MathU:
             google=google,
             together=together,
             anthropic=anthropic,
+            openai=openai,
+            groq=groq,
+            mistral=mistral,
             provider_priority=provider_priority
         )
         self.code_execution_timeout = code_execution_timeout
@@ -371,6 +377,7 @@ class MathU:
         difficulty_level: DifficultyLevel|None = None,
         provider: Optional[str] = None
     ) -> FinalOutput:
+    
         if temperature is None:
             temperature = self.temperature
         if difficulty_level is None:
