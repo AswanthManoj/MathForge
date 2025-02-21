@@ -119,7 +119,7 @@ class QuestionRequest(BaseModel):
 
 @app.post("/generate-question")
 async def generate_question(request: QuestionRequest):
-    # try:
+    try:
         result = await mathu.generate(
             topic=request.tagname,
             sub_topic=request.sub_topic,
@@ -131,8 +131,8 @@ async def generate_question(request: QuestionRequest):
             verify_solution=request.verify_solution
         )
         return result
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():
