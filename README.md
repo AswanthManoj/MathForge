@@ -46,8 +46,10 @@ Basic example:
 ```python
 import asyncio
 from config import get_settings
-from logic.sandbox import MathU, MCQType, DifficultyLevel
-from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
+from src.sandbox import MathU, MCQType
+from src.llm_connector import (GoogleConfig, 
+AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig)
+
 
 settings = get_settings()
 mathu = MathU(
@@ -65,24 +67,32 @@ mathu = MathU(
         api_key=settings.together_api_key,
         model=settings.together_primary_model
     ),
+    openai=OpenAIConfig(
+        api_key=settings.openai_api_key,
+        model=settings.openai_primary_model
+    ),
+    groq=GroqConfig(
+        api_key=settings.groq_api_key,
+        model=settings.groq_primary_model
+    ),
     provider_priority=settings.provider_priority
 )
 
-async def main()
-    output = await mathu.generate(
-        topic="Addresses more complex problems that involve multiple right triangles, requiring the application of trigonometric principles and problem-solving skills",
-        temperature=0.5, 
-        provider="google",
-        mcq_type=MCQType.STATEMENT,
-        difficulty_level=DifficultyLevel.HARD
+
+async def main():
+    output = await mathu.generate_solution(
+        question="Find the coordinates of the point that divides the line segment joining (-7, -3) and (4, 8) in the ratio 4:3 internally.",
+        mcq_type=MCQType.NUMERICAL,
+        temperature=0.3,
+        verify_solution=True,
+        provider="anthropic"
     )
-    print(output.question)
     for i, option in enumerate(output.options, 1):
         print(f"{i}. {option.output_result} | is correct: {option.is_correct}")
-    
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
 ```
 
 
