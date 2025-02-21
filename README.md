@@ -1,17 +1,29 @@
-# MathU
+# MathU: Mathematical Solution Generator with MCQ 
+MathU is a sophisticated mathematical solution generation system that leverages multiple Language Learning Models (LLMs) to create detailed solutions and multiple-choice questions. The system is designed to handle various types of mathematical problems while providing comprehensive explanations, step-by-step solutions, and carefully generated distractors for educational purposes.
 
-An AI-powered system for generating verifiable Multiple Choice Questions (MCQs) for 10th grade mathematics, with support for multiple LLM providers.
-
-## Overview
-
+## Core Capabilities
 MathU generates mathematically accurate questions with verifiable answers by:
 - Creating grade-appropriate math problems with step-by-step solutions
 - Generating multiple parameter variations to create answer options
 - Validating solutions through secure code execution
 - Supporting multiple LLM providers (Anthropic, Together, Google) with fallback
 
-## Requirements
+### Solution Generation
+- **Problem Analysis**: Analyzes mathematical questions and generates structured Python code solutions
+- **Multiple Solution Types**:
+    Numerical calculations with precise decimal handling
+    Symbolic mathematical expressions using SymPy
+    True/False statement evaluation
 
+- **Step-by-Step Explanations**: Provides detailed reasoning and mathematical steps
+- **Code Generation**: Creates executable Python code for solution verification
+
+### MCQ Generation
+- **Smart Distractor Generation**: Creates plausible wrong answers that test understanding
+- **Answer Validation**: Verifies generated solutions through code execution
+- **Format Handling**: Supports various output formats including fractions, decimals, and symbolic expressions
+
+## Requirements
 - Python 3.10+
 - Astral UV (package manager)
 
@@ -97,3 +109,7 @@ if __name__ == "__main__":
 
 
 To run the fastapi server run `uv run python app.py`
+
+
+
+Note: This system represents a sophisticated approach to mathematical problem solving and MCQ generation, suitable for educational technology applications and automated assessment systems.
