@@ -1,26 +1,27 @@
+import os
+import json
+import random
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
-from pydantic import BaseModel, Field
 from typing import List, Callable, Optional
+from src.schema import (LLMProviderConfig, AnthropicConfig, 
+GoogleConfig, TogetherConfig, OpenAIConfig, GroqConfig, MistralConfig, LLMMessage)
 
-class LLMMessage(BaseModel):
-    role:              str = "assistant"
-    content:           str
-    content_delta:     Optional[str] = None
-    response_finished: bool = False
-    
-class LLMProviderConfig(BaseModel):
-    model:   str
-    api_key: str
-    
-class AnthropicConfig(LLMProviderConfig):
-    pass
 
-class GoogleConfig(LLMProviderConfig):
-    pass
+def get_env_array(env_var_name):
+    env_var_str = os.environ.get(env_var_name)
+    if env_var_str:
+        try:
+            array_candidate = json.loads(env_var_str)
+            if isinstance(array_candidate, list) and all(isinstance(item, str) for item in array_candidate):
+                return array_candidate
+            else:
+                return None
+        except json.JSONDecodeError:
+            return None
+    else:
+        return None
 
-class TogetherConfig(LLMProviderConfig):
-    pass
 
 class LLMConnector:
     """
@@ -40,11 +41,17 @@ class LLMConnector:
         anthropic: Optional[AnthropicConfig] = None,
         google: Optional[GoogleConfig] = None,
         together: Optional[TogetherConfig] = None,
-        provider_priority: List[str] = ["anthropic", "google", "together"]
+        openai: Optional[OpenAIConfig] = None,
+        groq:  Optional[GroqConfig] = None, 
+        mistral:  Optional[MistralConfig] = None, 
+        provider_priority: List[str] = ["anthropic", "google", "together", "groq", "mistral"]
     ) -> None:
         self.google = google
         self.together = together
         self.anthropic = anthropic
+        self.openai = openai
+        self.groq = groq
+        self.mistral = mistral
         self.provider_priority = [p for p in provider_priority if getattr(self, p) is not None]
         
         if not self.provider_priority:
@@ -65,6 +72,21 @@ class LLMConnector:
             self.clients["google"] = AsyncOpenAI(
                 api_key=self.google.api_key,
                 base_url="https://generativelanguage.googleapis.com/v1beta/"
+            )
+        if self.openai:
+            self.clients["openai"] = AsyncOpenAI(
+                api_key=self.openai.api_key,
+                base_url="https://api.openai.com/v1"
+            )
+        if self.groq:
+            self.clients["groq"] = AsyncOpenAI(
+                api_key=self.groq.api_key,
+                base_url="https://api.groq.com/openai/v1"
+            )
+        if self.mistral:
+            self.clients["mistral"] = AsyncOpenAI(
+                api_key=self.mistral.api_key,
+                base_url="https://api.mistral.ai/v1"
             )
 
     async def _stream_openai(self, client: AsyncOpenAI, model: str, messages: List[dict], **kwargs):
@@ -231,7 +253,32 @@ class LLMConnector:
                             temperature=temperature,
                         )
                     response_text = response.content[0].text
+                
                 else:
+                    if current_provider == "groq":
+                        api_keys_array = get_env_array("GROQ_API_KEYS")
+                        if api_keys_array:   
+                            _api_key = random.choice(api_keys_array)
+                            print("Using API Key: ", _api_key)
+                            client: AsyncOpenAI = AsyncOpenAI(
+                                api_key=_api_key,
+                                base_url="https://api.groq.com/openai/v1"
+                            )
+                        else:
+                            print("GROQ_API_KEYS environment variable not found or invalid string array. Using default API key.")
+                            
+                    if current_provider == "mistral":
+                        api_keys_array = get_env_array("MISTRAL_API_KEYS")
+                        if api_keys_array:   
+                            _api_key = random.choice(api_keys_array)
+                            print("Using API Key: ", _api_key)
+                            client: AsyncOpenAI = AsyncOpenAI(
+                                api_key=_api_key,
+                                base_url="https://api.mistral.ai/v1"
+                            )
+                        else:
+                            print("MISTRAL_API_KEYS environment variable not found or invalid string array. Using default API key.")
+                                
                     if system:
                         messages = [{"role": "system", "content": system}] + messages
                     
