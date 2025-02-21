@@ -27,7 +27,7 @@ mathu = MathU(
 )
 
 
-async def generate_data(tagname: str, sub_topic: Optional[str] = None, description: Optional[str] = None, max_retries: int = 3, max_questions: int = 10, output_filename: str="output_result.json") -> Dict:
+async def generate_data(tagname: str, sub_topic: Optional[str] = None, description: Optional[str] = None, max_retries: int = 3, max_questions: int = 10, verify_solution: bool=False, output_filename: str="output_result.json") -> Dict:
     results = {
         "questions": [],
         "tagname": tagname,
@@ -51,7 +51,8 @@ async def generate_data(tagname: str, sub_topic: Optional[str] = None, descripti
                         mcq_type=mcq_type,
                         temperature=random.choice([0.2, 0.3, 0.4, 0.5, 0.6]),
                         difficulty_level=difficulty_level,
-                        provider=random.choice(["google", "together"]),
+                        provider="anthropic", # random.choice(["google", "together"]),
+                        verify_solution=verify_solution
                     )
                     question_data = {
                         "mcq_type": mcq_type,
@@ -85,7 +86,6 @@ async def generate_data(tagname: str, sub_topic: Optional[str] = None, descripti
     print("\nGenerating HARD questions...")
     await generate_questions(hard, DifficultyLevel.HARD)
 
-
     
     print(f"\nAll questions generated and saved to {filename}")
     return results
@@ -98,6 +98,7 @@ async def main():
         sub_topic=None,
         max_retries=4,
         max_questions=10,
+        verify_solution=True,
         output_filename="output_result.json"
     )
 

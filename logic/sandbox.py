@@ -11,10 +11,11 @@ from prompts.expression import (
 QUESTION_ICL_MESSAGES, PARAMETER_ICL_MESSAGES)
 from pydantic import BaseModel, field_validator
 from concurrent.futures import ThreadPoolExecutor
+from prompts.verifier import EXPRESSION_VERIFIER_PROMPT
 from prompts import (NUMERICAL_PARAMETER_PROMPT,
 NUMERICAL_QUESTION_PROMPT, ParameterGeneratorOutput, STATEMENT_PROMPT,
-CodeGeneratorOutput, EXPRESSION_PARAMETER_PROMPT, EXPRESSION_QUESTION_PROMPT,
-extract_generator_content, extract_parameter_content, remove_print_statements)
+CodeGeneratorOutput, EXPRESSION_PARAMETER_PROMPT, EXPRESSION_QUESTION_PROMPT, VerificationOutput,
+extract_generator_content, extract_parameter_content, remove_print_statements, extract_verifier_content)
 from logic.llm_connector import LLMConnector, AnthropicConfig, GoogleConfig, TogetherConfig
 from prompts.base import TOPIC_AND_CHAPTER_OVERVIEW_TEMPLATE, TOPIC_ONLY_TEMPLATE, PARAMETERS_TEMPLATE, DifficultyLevel, MCQType
 
@@ -199,7 +200,8 @@ class MathU:
         is_numerical: bool=True, 
         difficulty_level: DifficultyLevel=DifficultyLevel.EASY,
         temperature: float = 0.3,
-        provider: Optional[str] = None
+        provider: Optional[str] = None,
+        verify_solution: bool = False
     ) -> FinalOutput:
         async def _generate_question_and_code() -> CodeGeneratorOutput:
             nonlocal is_numerical
@@ -232,6 +234,29 @@ class MathU:
                 system=NUMERICAL_QUESTION_PROMPT if is_numerical else EXPRESSION_QUESTION_PROMPT,
             )
         
+        async def _verify_generated_code(code_generator_output: CodeGeneratorOutput) -> VerificationOutput:
+            nonlocal is_numerical
+            result_type = "numerical" if is_numerical else "symbolic or expression"
+            return await self.llm.generate(
+                provider=provider,
+                temperature=temperature,
+                max_tokens=self.max_tokens,
+                system=EXPRESSION_VERIFIER_PROMPT,
+                extractor_function=extract_verifier_content,
+                messages=[{
+                "role": "user",
+                "content": f"""<question>{code_generator_output.question}</question>
+
+<required-answer-type>{result_type}</required-answer-type>
+
+<proposed-solution-code>
+```python
+{code_generator_output.code}
+```
+</proposed-solution-code>"""
+            }] 
+            )
+
         async def _generate_parameters(code: str) -> ParameterGeneratorOutput:
             nonlocal is_numerical
             return await self.llm.generate(
@@ -247,6 +272,11 @@ class MathU:
             )
             
         code_output = await _generate_question_and_code()
+        if verify_solution:
+            verified_code_output = await _verify_generated_code(code_output)
+            code_output.code = verified_code_output.code
+            code_output.thoughts = verified_code_output.thoughts
+
         solve_function_namespace = await self.safe_exec(
             timeout=self.code_execution_timeout,
             code=remove_print_statements(code_output.code),
@@ -300,7 +330,8 @@ class MathU:
         chapter_overview: str|None=None, 
         difficulty_level: DifficultyLevel=DifficultyLevel.EASY,
         temperature: float = 0.3,
-        provider: Optional[str] = None
+        provider: Optional[str] = None,
+        verify_solution: bool = False
     ) -> FinalOutput:
         async def _generate_question_and_code() -> CodeGeneratorOutput:
             result_type = "numerical" if random.choice([True, False]) else "symbolic or expression"
@@ -369,7 +400,8 @@ class MathU:
         mcq_type: MCQType=MCQType.NUMERICAL, 
         temperature: float|None = None,
         difficulty_level: DifficultyLevel|None = None,
-        provider: Optional[str] = None
+        provider: Optional[str] = None,
+        verify_solution: bool = False
     ) -> FinalOutput:
         if temperature is None:
             temperature = self.temperature
@@ -384,6 +416,7 @@ class MathU:
                 topic=topic, 
                 provider=provider,
                 temperature=temperature,
+                verify_solution=verify_solution,
                 difficulty_level=difficulty_level,
                 chapter_overview=chapter_overview, 
             )
@@ -397,6 +430,7 @@ class MathU:
             provider=provider,
             temperature=temperature,
             is_numerical=is_numerical, 
+            verify_solution=verify_solution,
             difficulty_level=difficulty_level,
             chapter_overview=chapter_overview, 
         )
