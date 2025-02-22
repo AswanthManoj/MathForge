@@ -1,17 +1,29 @@
-# MathU
+# MathU: Mathematical Solution Generator with MCQ 
+MathU is a sophisticated mathematical solution generation system that leverages multiple Language Learning Models (LLMs) to create detailed solutions and multiple-choice questions. The system is designed to handle various types of mathematical problems while providing comprehensive explanations, step-by-step solutions, and carefully generated distractors for educational purposes.
 
-An AI-powered system for generating verifiable Multiple Choice Questions (MCQs) for 10th grade mathematics, with support for multiple LLM providers.
-
-## Overview
-
+## Core Capabilities
 MathU generates mathematically accurate questions with verifiable answers by:
 - Creating grade-appropriate math problems with step-by-step solutions
 - Generating multiple parameter variations to create answer options
 - Validating solutions through secure code execution
 - Supporting multiple LLM providers (Anthropic, Together, Google) with fallback
 
-## Requirements
+### Solution Generation
+- **Problem Analysis**: Analyzes mathematical questions and generates structured Python code solutions
+- **Multiple Solution Types**:
+    Numerical calculations with precise decimal handling
+    Symbolic mathematical expressions using SymPy
+    True/False statement evaluation
 
+- **Step-by-Step Explanations**: Provides detailed reasoning and mathematical steps
+- **Code Generation**: Creates executable Python code for solution verification
+
+### MCQ Generation
+- **Smart Distractor Generation**: Creates plausible wrong answers that test understanding
+- **Answer Validation**: Verifies generated solutions through code execution
+- **Format Handling**: Supports various output formats including fractions, decimals, and symbolic expressions
+
+## Requirements
 - Python 3.10+
 - Astral UV (package manager)
 
@@ -46,8 +58,10 @@ Basic example:
 ```python
 import asyncio
 from config import get_settings
-from logic.sandbox import MathU, MCQType, DifficultyLevel
-from logic.llm_connector import GoogleConfig, AnthropicConfig, TogetherConfig
+from src.sandbox import MathU, MCQType
+from src.llm_connector import (GoogleConfig, 
+AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig)
+
 
 settings = get_settings()
 mathu = MathU(
@@ -65,25 +79,37 @@ mathu = MathU(
         api_key=settings.together_api_key,
         model=settings.together_primary_model
     ),
+    openai=OpenAIConfig(
+        api_key=settings.openai_api_key,
+        model=settings.openai_primary_model
+    ),
+    groq=GroqConfig(
+        api_key=settings.groq_api_key,
+        model=settings.groq_primary_model
+    ),
     provider_priority=settings.provider_priority
 )
 
-async def main()
-    output = await mathu.generate(
-        topic="Addresses more complex problems that involve multiple right triangles, requiring the application of trigonometric principles and problem-solving skills",
-        temperature=0.5, 
-        provider="google",
-        mcq_type=MCQType.STATEMENT,
-        difficulty_level=DifficultyLevel.HARD
+
+async def main():
+    output = await mathu.generate_solution(
+        question="Find the coordinates of the point that divides the line segment joining (-7, -3) and (4, 8) in the ratio 4:3 internally.",
+        mcq_type=MCQType.NUMERICAL,
+        temperature=0.3,
+        verify_solution=True,
+        provider="anthropic"
     )
-    print(output.question)
     for i, option in enumerate(output.options, 1):
         print(f"{i}. {option.output_result} | is correct: {option.is_correct}")
-    
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
 ```
 
 
 To run the fastapi server run `uv run python app.py`
+
+
+
+Note: This system represents a sophisticated approach to mathematical problem solving and MCQ generation, suitable for educational technology applications and automated assessment systems.

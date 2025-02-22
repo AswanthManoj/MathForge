@@ -1,7 +1,6 @@
-import sympy as sp
 from enum import Enum
+from pydantic import BaseModel
 from typing import List, Optional
-from pydantic import BaseModel, field_validator
 
     
 class MCQType(str, Enum):
@@ -9,15 +8,14 @@ class MCQType(str, Enum):
     SYMBOLIC = 'symbolic'
     STATEMENT = 'statement'
 
-
 class SolverOutput(BaseModel):
     code: Optional[str] = None
     thoughts: Optional[str] = None
-    
 
 class ParameterGeneratorOutput(BaseModel):
     thoughts: Optional[str] = None
     parameters_code: str
+
 
 
 
@@ -57,16 +55,7 @@ class SecurityException(Exception):
 
 class Option(BaseModel):
     is_correct: bool = False
-    output_result: Optional[int|float|str|tuple|list] = None
-
-    @field_validator('output_result')
-    @classmethod
-    def format_output_result(cls, value):
-        if isinstance(value, float):
-            return round(value, 5)
-        if isinstance(value, (sp.Symbol, sp.Expr)):
-            return sp.latex(value)
-        return value
+    output_result: Optional[int|float|str] = None
 
 class FinalOutput(BaseModel):
     question: str
