@@ -18,13 +18,27 @@ def convert_decimals_to_fraction(text):
     return re.sub(pattern, replace_with_fraction, text)
 
 def format_result(value):
-    if isinstance(value, float):
-        return round(value, 5)
-    if isinstance(value, (sp.Symbol, sp.Expr)):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return str(round(value, 5) if isinstance(value, float) else value)
+    if isinstance(value, (sp.Expr, sp.Symbol, sp.Matrix)):
         return sp.latex(value)
-    if isinstance(value, (tuple, list)):
-        return type(value)(format_result(item) for item in value)
-    return value
+    
+    # Handle sets - use curly braces
+    if isinstance(value, set):
+        formatted_items = [format_result(item) for item in value]
+        return "\\{" + ", ".join(formatted_items) + "\\}"
+        
+    # Handle tuples - use parentheses (common for coordinates, ordered pairs)
+    if isinstance(value, tuple):
+        formatted_items = [format_result(item) for item in value]
+        return "(" + ", ".join(formatted_items) + ")"
+    
+    if isinstance(value, list):
+        formatted_items = [format_result(item) for item in value]
+        return "[" + ", ".join(formatted_items) + "]"
+    return str(value)
 
 def remove_python_comments(text):
     return re.sub(r'\s*#.*', '', text)
