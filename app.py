@@ -2,9 +2,9 @@ import uvicorn
 from typing import Optional
 from config import get_settings
 from pydantic import BaseModel, Field
-from src.sandbox import MathU, MCQType
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from src.sandbox import MathU, MCQType, DifficultyLevel
 from src.llm_connector import GoogleConfig, AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig
 
 app = FastAPI(title="Synth Math Question Generator API")
@@ -45,7 +45,7 @@ mathu = MathU(
     provider_priority=settings.provider_priority
 )
 
-class QuestionRequest(BaseModel):
+class SolutionRequest(BaseModel):
     question: str = Field(
         ..., 
         description="The question thats needed to be solved for",
@@ -99,8 +99,55 @@ class QuestionRequest(BaseModel):
         }
     }
 
-@app.post("/generate-question")
-async def generate_question(request: QuestionRequest):
+class QuestionsRequest(BaseModel):
+    tagname: str = Field(
+        ...,
+        description="The topic or tag name for which questions need to be generated",
+        example="Trigonometry"
+    )
+    description: str = Field(
+        ...,
+        description="Overview or description of the chapter/topic",
+        example="Basic concepts of trigonometry including sine, cosine, and tangent"
+    )
+    mcq_type: MCQType = Field(
+        default=MCQType.NUMERICAL,
+        description="Type of multiple choice question. Should be `numerical`, `symbolic` or `statement`",
+        example=MCQType.NUMERICAL
+    )
+    difficulty_level: str = Field(
+        default=DifficultyLevel.EASY,
+        description="Difficulty level of the questions to be generated",
+        example=DifficultyLevel.EASY
+    )
+    temperature: Optional[float] = Field(
+        default=None,
+        description="Temperature parameter for LLM generation (0.2 to 1.0)",
+        example=0.7
+    )
+    provider: Optional[str] = Field(
+        default=None,
+        description="LLM provider to use (`google`, `anthropic`, or `together`)",
+        example="google"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "tagname": "Trigonometry",
+                    "description": "Basic concepts of trigonometry including sine, cosine, and tangent ratios in right triangles",
+                    "mcq_type": "numerical",
+                    "difficulty_level": "easy",
+                    "temperature": 0.3,
+                    "provider": "google"
+                }
+            ]
+        }
+    }
+
+@app.post("/solve-question")
+async def solve_question(request: SolutionRequest):
     try:
         result = await mathu.generate_solution(
             question=request.question,
@@ -108,6 +155,21 @@ async def generate_question(request: QuestionRequest):
             provider=request.provider,
             temperature=request.temperature,
             verify_solution=request.verify_solution
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-questions")
+async def generate_questions(request: QuestionsRequest):
+    try:
+        result = await mathu.generate_questions(
+            tagname=request.tagname,
+            provider=request.provider,
+            mcq_type=request.mcq_type,
+            temperature=request.temperature,
+            description=request.description,
+            difficulty_level=request.difficulty_level,
         )
         return result
     except Exception as e:

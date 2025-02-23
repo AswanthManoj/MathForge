@@ -6,7 +6,7 @@ import sympy as sp
 import numpy as np
 from typing import Optional, List, Tuple
 from src.schema import SecurityException
-from src.schema import SolverOutput
+from src.schema import SolverOutput, QuestionBank
 from concurrent.futures import ThreadPoolExecutor
 
 def convert_decimals_to_fraction(text):
@@ -54,7 +54,7 @@ def extract_xml_content(text: str, tag: str) -> Optional[str]:
         return match.group(1).strip()
     return None
 
-def extract_iter_xml(text: str, tag: str) -> Optional[str]:
+def extract_iter_xml(text: str, tag: str) -> List[str]:
     output = []
     pattern = fr'<{tag}>(.*?)</{tag}>'
     for match in re.finditer(pattern, text, re.DOTALL):
@@ -88,6 +88,18 @@ def extract_from_verifier(text: str) -> Tuple[bool, SolverOutput]:
 
 def extract_distractors(text: str) -> List[str]:
     return extract_iter_xml(text, 'option')
+
+def extract_question(text: str) -> QuestionBank:
+    thoughts = extract_xml_content(text, 'thoughts')
+    questions_xml = extract_xml_content(text, 'questions')
+    if questions_xml is not None:
+        questions = extract_iter_xml(questions_xml, 'li')
+    else:
+        questions = extract_iter_xml(text, 'li')
+    return QuestionBank(
+        thoughts=thoughts, 
+        questions=questions
+    )
 
 async def safe_exec(code, timeout: int = 5, disallowed_names=None, disallowed_global_vars=None):
     def analyze_ast(node, disallowed_names):

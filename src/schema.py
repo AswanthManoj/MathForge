@@ -8,6 +8,11 @@ class MCQType(str, Enum):
     SYMBOLIC = 'symbolic'
     STATEMENT = 'statement'
 
+class DifficultyLevel(str, Enum):
+    EASY = 'easy'
+    MEDIUM = 'medium'
+    HARD = 'hard'
+
 class SolverOutput(BaseModel):
     code: Optional[str] = None
     thoughts: Optional[str] = None
@@ -52,6 +57,10 @@ class MistralConfig(LLMProviderConfig):
 
 class SecurityException(Exception):
     pass
+
+class QuestionBank(BaseModel):
+    thoughts: str
+    questions: List[str] = []
 
 class Option(BaseModel):
     is_correct: bool = False
