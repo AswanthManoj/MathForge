@@ -23,3 +23,11 @@ VERIFIER_TEMPLATE = """
 
 <answer>{answer}<answer>""".strip()
 
+
+QUESTION_GENERATION_TEMPLATE = """<topic>{topic}</topic>
+
+<chapter_overview>{chapter_overview}</chapter_overview>
+
+<difficulty_level>{difficulty_level}</difficulty_level>
+
+<expected_answer_type>{expected_answer_type}</expected_answer_type>"""
