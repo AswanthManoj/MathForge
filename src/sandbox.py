@@ -9,7 +9,8 @@ from src.llm_connector import (LLMConnector, AnthropicConfig,
 TogetherConfig, MistralConfig, GroqConfig, OpenAIConfig, GoogleConfig)
 from prompts.solver import SYMBOLIC_SOLVER_INSTRUCTION, STATEMENT_SOLVER_INSTRUCTION
 from src.schema import SolverOutput, Option, FinalOutput, QuestionBank, DifficultyLevel
-from prompts.base import INPUT_TEMPLATE, DISTRACTOR_TEMPLATE, VERIFIER_TEMPLATE, QUESTION_GENERATION_TEMPLATE
+from prompts.base import (INPUT_TEMPLATE, DISTRACTOR_TEMPLATE, VERIFIER_TEMPLATE, 
+QUESTION_GENERATION_TEMPLATE, QUESTION_EXTENSION_ASSISTANT_TEMPLATE, QUESTION_EXTENSION_USER_TEMPLATE)
 
 
 class MathU:
@@ -55,25 +56,54 @@ class MathU:
         self,
         tagname: str,
         description: str,
+        num_questions: int = 30,
         temperature: float = 0.3,
         mcq_type: str = MCQType.NUMERICAL,
         difficulty_level: str = DifficultyLevel.EASY,
         provider: Optional[str] = None,
     ) -> QuestionBank:
-        return await self.llm.generate(
-            provider=provider,
-            temperature=temperature,
-            max_tokens=self.max_tokens,
-            extractor_function=extract_question,
-            system=QUESTION_GENERATION_INSTRUCTION,
-            messages=[{
-                "role": "user",
-                "content": QUESTION_GENERATION_TEMPLATE.format(
-                    topic=tagname, chapter_overview=description,
-                    difficulty_level=difficulty_level, expected_answer_type=mcq_type
-                )
-            }]
-        )
+        thoughts = None
+        all_questions = []
+        messages= [{
+            "role": "user",
+            "content": QUESTION_GENERATION_TEMPLATE.format(
+                topic=tagname, chapter_overview=description,
+                difficulty_level=difficulty_level, expected_answer_type=mcq_type
+            )
+        }]
+        while len(all_questions) < num_questions:
+            question_bank: QuestionBank = await self.llm.generate(
+                provider=provider,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=self.max_tokens,
+                extractor_function=extract_question,
+                system=QUESTION_GENERATION_INSTRUCTION,
+            )
+            if thoughts is None:
+                thoughts = question_bank.thoughts
+
+            all_questions.extend(question_bank.questions)
+            all_questions = list(set(all_questions))
+            if len(all_questions) < num_questions:
+                n = min(30, num_questions - len(all_questions))
+                messages.extend([{
+                    "role": "assistant",
+                    "content": QUESTION_EXTENSION_ASSISTANT_TEMPLATE.format(
+                        previous_questions='\n'.join([f'<li>{q}</li>' for q in all_questions])
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": QUESTION_EXTENSION_USER_TEMPLATE.format(
+                        topic=tagname, chapter_overview=description, n=n,
+                        difficulty_level=difficulty_level, expected_answer_type=mcq_type
+                    )
+                }])
+        if num_questions>30:
+            return QuestionBank(thoughts=thoughts, questions=all_questions)
+        else:
+            return QuestionBank(thoughts=thoughts, questions=all_questions[:num_questions])
 
     async def generate_distractors(
         self,

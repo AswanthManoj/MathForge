@@ -110,6 +110,11 @@ class QuestionsRequest(BaseModel):
         description="Overview or description of the chapter/topic",
         example="Basic concepts of trigonometry including sine, cosine, and tangent"
     )
+    num_questions: int = Field(
+        default=30,
+        description="Number of questions to be generated",
+        example=30
+    )
     mcq_type: MCQType = Field(
         default=MCQType.NUMERICAL,
         description="Type of multiple choice question. Should be `numerical`, `symbolic` or `statement`",
@@ -140,6 +145,7 @@ class QuestionsRequest(BaseModel):
                     "mcq_type": "numerical",
                     "difficulty_level": "easy",
                     "temperature": 0.3,
+                    "num_questions": 40,
                     "provider": "google"
                 }
             ]
@@ -169,6 +175,7 @@ async def generate_questions(request: QuestionsRequest):
             mcq_type=request.mcq_type,
             temperature=request.temperature,
             description=request.description,
+            num_questions=request.num_questions,
             difficulty_level=request.difficulty_level,
         )
         return result
