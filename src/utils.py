@@ -93,12 +93,22 @@ def extract_question(text: str) -> QuestionBank:
     thoughts = extract_xml_content(text, 'thoughts')
     questions_xml = extract_xml_content(text, 'questions')
     if questions_xml is not None:
-        questions = extract_iter_xml(questions_xml, 'li')
+        all_questions = extract_iter_xml(questions_xml, 'li')
     else:
-        questions = extract_iter_xml(text, 'li')
+        all_questions = extract_iter_xml(text, 'li')
+
+    filtered_questions = []
+    excluded_words = ['diagram', 'figure']
+    markdown_pattern = r'(!?\[([^\]]*)\]\(([^)]+)\))'
+    for question in all_questions:
+        has_markdown = bool(re.search(markdown_pattern, question))
+        has_excluded_words = any(word.lower() in question.lower() for word in excluded_words)
+        if not (has_markdown or has_excluded_words):
+            filtered_questions.append(question)
+
     return QuestionBank(
         thoughts=thoughts, 
-        questions=questions
+        questions=filtered_questions
     )
 
 async def safe_exec(code, timeout: int = 5, disallowed_names=None, disallowed_global_vars=None):
