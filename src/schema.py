@@ -62,6 +62,16 @@ class QuestionBank(BaseModel):
     thoughts: str
     questions: List[str] = []
 
+class Question(BaseModel):
+    numerical: List[str] = []
+    symbolic: List[str] = []
+    statement: List[str] = []
+
+class MultiLevelQuestionBank(BaseModel):
+    easy_questions: Question = Question()
+    medium_questions: Question = Question()
+    hard_questions: Question = Question()
+
 class Option(BaseModel):
     is_correct: bool = False
     output_result: Optional[int|float|str] = None

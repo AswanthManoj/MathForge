@@ -6,8 +6,9 @@ import sympy as sp
 import numpy as np
 from typing import Optional, List, Tuple
 from src.schema import SecurityException
-from src.schema import SolverOutput, QuestionBank
 from concurrent.futures import ThreadPoolExecutor
+from src.schema import SolverOutput, QuestionBank, MultiLevelQuestionBank, Question
+
 
 def convert_decimals_to_fraction(text):
     pattern = r'(-?\d*\.\d{6,})(?![a-zA-Z+\-*/^])'
@@ -109,6 +110,52 @@ def extract_question(text: str) -> QuestionBank:
     return QuestionBank(
         thoughts=thoughts, 
         questions=filtered_questions
+    )
+
+def extract_multi_level_questions(text: str) -> MultiLevelQuestionBank:
+    easy_questions = extract_xml_content(text, 'easy-questions')
+    hard_questions = extract_xml_content(text, 'hard-questions')
+    medium_questions = extract_xml_content(text, 'medium-questions')
+    
+    easy_numerical = extract_xml_content(easy_questions, 'numerical-questions')
+    easy_symbolic = extract_xml_content(easy_questions, 'symbolic-questions')
+    easy_statement = extract_xml_content(easy_questions, 'statement-questions')
+
+    medium_numerical = extract_xml_content(medium_questions, 'numerical-questions')
+    medium_symbolic = extract_xml_content(medium_questions, 'symbolic-questions')
+    medium_statement = extract_xml_content(medium_questions, 'statement-questions')
+
+    hard_numerical = extract_xml_content(hard_questions, 'numerical-questions')
+    hard_symbolic = extract_xml_content(hard_questions, 'symbolic-questions')
+    hard_statement = extract_xml_content(hard_questions, 'statement-questions')
+
+    def deduplicate(questions: List[str]):
+        filtered_questions = []
+        excluded_words = ['diagram', 'figure']
+        markdown_pattern = r'(!?\[([^\]]*)\]\(([^)]+)\))'
+        for question in questions:
+            has_markdown = bool(re.search(markdown_pattern, question))
+            has_excluded_words = any(word.lower() in question.lower() for word in excluded_words)
+            if not (has_markdown or has_excluded_words):
+                filtered_questions.append(question)
+        return filtered_questions
+
+    return MultiLevelQuestionBank(
+        easy_questions=Question(
+            symbolic=deduplicate(extract_iter_xml(easy_symbolic, "li")),
+            numerical=deduplicate(extract_iter_xml(easy_numerical, "li")),
+            statement=deduplicate(extract_iter_xml(easy_statement, "li")),
+        ),
+        medium_questions=Question(
+            symbolic=deduplicate(extract_iter_xml(medium_symbolic, "li")),
+            numerical=deduplicate(extract_iter_xml(medium_numerical, "li")),
+            statement=deduplicate(extract_iter_xml(medium_statement, "li")),
+        ),
+        hard_questions=Question(
+            symbolic=deduplicate(extract_iter_xml(hard_symbolic, "li")),
+            numerical=deduplicate(extract_iter_xml(hard_numerical, "li")),
+            statement=deduplicate(extract_iter_xml(hard_statement, "li")),
+        )
     )
 
 async def safe_exec(code, timeout: int = 5, disallowed_names=None, disallowed_global_vars=None):

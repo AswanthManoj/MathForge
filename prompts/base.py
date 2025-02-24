@@ -32,7 +32,15 @@ QUESTION_GENERATION_TEMPLATE = """<topic>{topic}</topic>
 
 <expected_answer_type>{expected_answer_type}</expected_answer_type>"""
 
-QUESTION_EXTENSION_ASSISTANT_TEMPLATE = """<questions>
+MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE = """<topic>{topic}</topic>
+
+<chapter_overview>{chapter_overview}</chapter_overview>"""
+
+QUESTION_EXTENSION_ASSISTANT_TEMPLATE = """<thoughts>
+{thoughts}
+</thoughts>
+
+<questions>
 {previous_questions}
 <questions>
 """

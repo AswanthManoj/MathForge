@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings:
-    max_tokens: int = 3049
+    max_tokens: int = 5049
     temperature: float = 0.3
     code_execution_timeout: int = 5
     

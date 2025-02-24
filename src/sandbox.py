@@ -2,15 +2,15 @@ from src.schema import MCQType
 from typing import List, Optional, Tuple
 from prompts.verifier import VERIFIER_INSTRUCTION
 from prompts.distractor import DISTRACATOR_INSTRUCTION
-from prompts.questionaire import QUESTION_GENERATION_INSTRUCTION
-from src.utils import (extract_from_solver, remove_print_statements, 
-safe_exec, format_result, extract_distractors, extract_from_verifier, extract_question)
+from src.utils import (extract_from_solver, remove_print_statements, extract_question, 
+safe_exec, format_result, extract_distractors, extract_from_verifier, extract_multi_level_questions)
 from src.llm_connector import (LLMConnector, AnthropicConfig,  
 TogetherConfig, MistralConfig, GroqConfig, OpenAIConfig, GoogleConfig)
 from prompts.solver import SYMBOLIC_SOLVER_INSTRUCTION, STATEMENT_SOLVER_INSTRUCTION
-from src.schema import SolverOutput, Option, FinalOutput, QuestionBank, DifficultyLevel
+from src.schema import SolverOutput, Option, FinalOutput, QuestionBank, DifficultyLevel, MultiLevelQuestionBank
 from prompts.base import (INPUT_TEMPLATE, DISTRACTOR_TEMPLATE, VERIFIER_TEMPLATE, 
-QUESTION_GENERATION_TEMPLATE, QUESTION_EXTENSION_ASSISTANT_TEMPLATE, QUESTION_EXTENSION_USER_TEMPLATE)
+QUESTION_GENERATION_TEMPLATE, QUESTION_EXTENSION_ASSISTANT_TEMPLATE, QUESTION_EXTENSION_USER_TEMPLATE, MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE)
+from prompts.questionaire import QUESTION_GENERATION_INSTRUCTION, MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION
 
 
 class MathU:
@@ -52,6 +52,27 @@ class MathU:
         correct_answer = solve_function(**actual_params)
         return format_result(correct_answer)
     
+    async def generate_multi_level_questions(
+        self,
+        tagname: str,
+        description: str,
+        temperature: float = 0.3,
+        provider: Optional[str] = None,
+    ) -> MultiLevelQuestionBank:
+        return await self.llm.generate(
+            provider=provider,
+            temperature=temperature,
+            max_tokens=self.max_tokens,
+            extractor_function=extract_multi_level_questions,
+            system=MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION,
+            messages=[{
+                "role": "user",
+                "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
+                    topic=tagname, chapter_overview=description,
+                )
+            }],
+        )
+
     async def generate_questions(
         self,
         tagname: str,
@@ -90,6 +111,7 @@ class MathU:
                 messages.extend([{
                     "role": "assistant",
                     "content": QUESTION_EXTENSION_ASSISTANT_TEMPLATE.format(
+                        thoughts=question_bank.thoughts,
                         previous_questions='\n'.join([f'<li>{q}</li>' for q in all_questions])
                     )
                 },

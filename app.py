@@ -152,6 +152,41 @@ class QuestionsRequest(BaseModel):
         }
     }
 
+class MultiLevelQuestionsRequest(BaseModel):
+    tagname: str = Field(
+        ...,
+        description="The topic or tag name for which questions need to be generated",
+        example="Trigonometry"
+    )
+    description: str = Field(
+        ...,
+        description="Overview or description of the chapter/topic",
+        example="Basic concepts of trigonometry including sine, cosine, and tangent"
+    )
+    temperature: Optional[float] = Field(
+        default=None,
+        description="Temperature parameter for LLM generation (0.2 to 1.0)",
+        example=0.7
+    )
+    provider: Optional[str] = Field(
+        default=None,
+        description="LLM provider to use (`google`, `anthropic`, or `together`)",
+        example="google"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "tagname": "Trigonometry",
+                    "description": "Basic concepts of trigonometry including sine, cosine, and tangent ratios in right triangles",
+                    "temperature": 0.3,
+                    "provider": "google"
+                }
+            ]
+        }
+    }
+
 @app.post("/solve-question")
 async def solve_question(request: SolutionRequest):
     try:
@@ -177,6 +212,19 @@ async def generate_questions(request: QuestionsRequest):
             description=request.description,
             num_questions=request.num_questions,
             difficulty_level=request.difficulty_level,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/generate-multi-level-questions")
+async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
+    try:
+        result = await mathu.generate_multi_level_questions(
+            tagname=request.tagname,
+            provider=request.provider,
+            temperature=request.temperature,
+            description=request.description,
         )
         return result
     except Exception as e:
