@@ -1,8 +1,11 @@
+import os
 import uvicorn
+from pathlib import Path
 from typing import Optional
 from config import get_settings
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from src.sandbox import MathU, MCQType, DifficultyLevel
 from src.llm_connector import GoogleConfig, AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig
@@ -186,6 +189,13 @@ class MultiLevelQuestionsRequest(BaseModel):
             ]
         }
     }
+
+@app.get("/", response_class=FileResponse)
+async def serve_index():
+    index_path = os.path.join(os.path.dirname(__file__), "src", "index.html")
+    if not os.path.exists(index_path):
+        raise HTTPException(status_code=404, detail="index.html not found")
+    return FileResponse(index_path)
 
 @app.post("/solve-question")
 async def solve_question(request: SolutionRequest):
