@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from src.sandbox import MathU, MCQType, DifficultyLevel
+from src.sandbox import MathForge, MCQType, DifficultyLevel
 from src.llm_connector import GoogleConfig, AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig
 
 app = FastAPI(title="Synth Math Question Generator API")
@@ -22,7 +22,7 @@ app.add_middleware(
 
 # Initialize settings and MathU instance
 settings = get_settings()
-mathu = MathU(
+math_forge = MathForge(
     max_tokens=settings.max_tokens,
     temperature=settings.temperature,
     anthropic=AnthropicConfig(
@@ -200,7 +200,7 @@ async def serve_index():
 @app.post("/solve-question")
 async def solve_question(request: SolutionRequest):
     try:
-        result = await mathu.generate_solution(
+        result = await math_forge.generate_solution(
             question=request.question,
             mcq_type=request.mcq_type,
             provider=request.provider,
@@ -214,7 +214,7 @@ async def solve_question(request: SolutionRequest):
 @app.post("/generate-questions")
 async def generate_questions(request: QuestionsRequest):
     try:
-        result = await mathu.generate_questions(
+        result = await math_forge.generate_questions(
             tagname=request.tagname,
             provider=request.provider,
             mcq_type=request.mcq_type,
@@ -230,7 +230,7 @@ async def generate_questions(request: QuestionsRequest):
 @app.post("/generate-multi-level-questions")
 async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
     try:
-        result = await mathu.generate_multi_level_questions(
+        result = await math_forge.generate_multi_level_questions(
             tagname=request.tagname,
             provider=request.provider,
             temperature=request.temperature,
