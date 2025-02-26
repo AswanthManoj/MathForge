@@ -1,60 +1,63 @@
-# MathU: Mathematical Solution Generator with MCQ 
-MathU is a sophisticated mathematical solution generation system that leverages multiple Language Learning Models (LLMs) to create detailed solutions and multiple-choice questions. The system is designed to handle various types of mathematical problems while providing comprehensive explanations, step-by-step solutions, and carefully generated distractors for educational purposes.
+# MathForge
+A synthetic mathematics data generator built around code execution and symbolic computation.
 
-## Core Capabilities
-MathU generates mathematically accurate questions with verifiable answers by:
-- Creating grade-appropriate math problems with step-by-step solutions
-- Generating multiple parameter variations to create answer options
-- Validating solutions through secure code execution
-- Supporting multiple LLM providers (Anthropic, Together, Google) with fallback
+## Overview
+MathForge is an advanced mathematical question generation system that uses language models to create high-quality mathematical questions and corresponding solutions. Unlike traditional synthetic datasets that rely solely on language model responses, MathForge generates verified solutions through symbolic computation with Python.
 
-### Solution Generation
-- **Problem Analysis**: Analyzes mathematical questions and generates structured Python code solutions
-- **Multiple Solution Types**:
-    Numerical calculations with precise decimal handling
-    Symbolic mathematical expressions using SymPy
-    True/False statement evaluation
-
-- **Step-by-Step Explanations**: Provides detailed reasoning and mathematical steps
-- **Code Generation**: Creates executable Python code for solution verification
-
-### MCQ Generation
-- **Smart Distractor Generation**: Creates plausible wrong answers that test understanding
-- **Answer Validation**: Verifies generated solutions through code execution
-- **Format Handling**: Supports various output formats including fractions, decimals, and symbolic expressions
+## Key Features
+- **Multi-level difficulty generation**: Easy, medium, and hard questions
+- **Multiple answer types**: Numerical, symbolic, and statement-based responses
+- **Code-based verification**: Solutions are generated as executable Python code using symbolic math libraries
+- **Solution verification**: Optional verification layer to ensure solution correctness
+- **Intelligent distractor generation**: Creates plausible wrong answers for MCQs
+- **API-first design**: Fully accessible via REST API endpoints
 
 ## Requirements
 - Python 3.10+
 - Astral UV (package manager)
 
 ## Installation
-
 1. Install Astral UV if you haven't already:
-```bash
-pip install uv
-```
-
+    ```bash
+    pip install uv
+    ```
+    
 2. Clone the repository:
-```bash
-git clone https://github.com/AswanthManoj/MathU.git
-cd mathu
-```
+    ```bash
+    git clone https://github.com/your-username/MathForge.git
+    cd mathforge
+    ```
 
-3. Installation dependencies:
-```bash
-uv sync
-```
+3. Install dependencies:
+    ```bash
+    uv sync
+    ```
 
 4. Create a `.env` file with your API keys:
-```env
-ANTHROPIC_API=your_anthropic_key
-GOOGLE_API=your_google_key
-TOGETHER_API=your_together_key
-```
-
+    ```env
+    ANTHROPIC_API=your_anthropic_key
+    GOOGLE_API=your_google_key
+    TOGETHER_API=your_together_key
+    OPENAI_API=your_openai_key
+    GROQ_API=your_groq_key
+    ```
+    
 ## Usage
-Basic example:
+### Using the API
+Start the FastAPI server:
+```bash
+python app.py
+```
+The API will be available at `http://localhost:8000`
 
+
+### API Endpoints
+- **POST `/solve-question`**: Solve a specific math question and generate multiple-choice options
+- **POST `/generate-questions`**: Generate a set of questions for a specific topic and difficulty level
+- **POST `/generate-multi-level-questions`**: Generate questions across all difficulty levels with multiple output types
+- **GET /health**: Health check endpoint
+
+### Python Library Usage
 ```python
 import asyncio
 from config import get_settings
@@ -62,9 +65,8 @@ from src.sandbox import MathU, MCQType
 from src.llm_connector import (GoogleConfig, 
 AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig)
 
-
 settings = get_settings()
-mathu = MathU(
+mathforge = MathU(
     max_tokens=settings.max_tokens,
     temperature=settings.temperature,
     anthropic=AnthropicConfig(
@@ -90,26 +92,44 @@ mathu = MathU(
     provider_priority=settings.provider_priority
 )
 
-
-async def main():
-    output = await mathu.generate_solution(
-        question="Find the coordinates of the point that divides the line segment joining (-7, -3) and (4, 8) in the ratio 4:3 internally.",
+# Generate a solution for a specific question
+async def solve_example():
+    solution = await mathforge.generate_solution(
+        question="A ladder 10 meters long rests against a vertical wall. The foot of the ladder is 6 meters from the wall. Find the height reached by the ladder on the wall.",
         mcq_type=MCQType.NUMERICAL,
-        temperature=0.3,
-        verify_solution=True,
-        provider="anthropic"
+        verify_solution=True
     )
-    for i, option in enumerate(output.options, 1):
-        print(f"{i}. {option.output_result} | is correct: {option.is_correct}")
+    print(solution)
 
-if __name__ == "__main__":
-    asyncio.run(main())
-    
+# Generate questions for a topic
+async def generate_questions_example():
+    questions = await mathforge.generate_questions(
+        tagname="Trigonometry",
+        description="Basic concepts of trigonometry including sine, cosine, and tangent",
+        num_questions=5,
+        difficulty_level="easy",
+        mcq_type=MCQType.NUMERICAL
+    )
+    print(questions)
+
+# Generate multi-level questions
+async def generate_multi_level_example():
+    multi_level_questions = await mathforge.generate_multi_level_questions(
+        tagname="Calculus",
+        description="Introduction to derivatives and basic differentiation rules"
+    )
+    print(multi_level_questions)
+
+# Run the examples
+asyncio.run(solve_example())
 ```
 
+## How It Works
+1. **Question Generation**: Creates questions based on topic and difficulty level
+2. **Solution Generation**: Uses language models to:
+    - Generate solution logic inside a `<thinking>` tag
+    - Produce executable Python code using symbolic math libraries (sympy, numpy)
 
-To run the fastapi server run `uv run python app.py`
-
-
-
-Note: This system represents a sophisticated approach to mathematical problem solving and MCQ generation, suitable for educational technology applications and automated assessment systems.
+3. **Code Execution**: Runs the solution code to generate the correct answer
+4. **Verification (Optional)**: Validates the solution against the question
+5. **Distractor Generation**: Creates plausible wrong answers for MCQs
