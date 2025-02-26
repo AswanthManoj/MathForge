@@ -1,12 +1,12 @@
 import asyncio
 from config import get_settings
-from src.sandbox import MathU, MCQType
+from src.sandbox import MathForge, MCQType
 from src.llm_connector import (GoogleConfig, 
 AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig)
 
 
 settings = get_settings()
-mathu = MathU(
+math_forge = MathForge(
     max_tokens=settings.max_tokens,
     temperature=settings.temperature,
     anthropic=AnthropicConfig(
@@ -34,7 +34,7 @@ mathu = MathU(
 
 
 async def main():
-    output = await mathu.generate_solution(
+    output = await math_forge.generate_solution(
         question="Find the coordinates of the point that divides the line segment joining (-7, -3) and (4, 8) in the ratio 4:3 internally.",
         mcq_type=MCQType.NUMERICAL,
         temperature=0.3,
