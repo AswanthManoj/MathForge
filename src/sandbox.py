@@ -13,7 +13,7 @@ QUESTION_GENERATION_TEMPLATE, QUESTION_EXTENSION_ASSISTANT_TEMPLATE, QUESTION_EX
 from prompts.questionaire import QUESTION_GENERATION_INSTRUCTION, MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION
 
 
-class MathU:
+class MathForge:
     def __init__(
         self, 
         max_tokens: int = 3049,
