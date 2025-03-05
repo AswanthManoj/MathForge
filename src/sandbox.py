@@ -101,6 +101,9 @@ class MathForge:
                 extractor_function=extract_question,
                 system=QUESTION_GENERATION_INSTRUCTION,
             )
+            
+            print(question_bank)
+            
             if thoughts is None:
                 thoughts = question_bank.thoughts
 
@@ -219,6 +222,7 @@ class MathForge:
             thoughts=code_output.thoughts,
             correct_answer=correct_answer,
             options=[Option(is_correct=True, output_result=correct_answer)] + wrong_options,
+            python_code = code_output.code
         )
 
         

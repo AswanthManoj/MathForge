@@ -20,7 +20,11 @@ class Settings:
     
 
     
-    google_primary_model: Optional[str] = "gemini-2.0-pro-exp-02-05"
+    # google_primary_model: Optional[str] = "gemini-2.0-pro-exp-02-05"
+    
+    google_primary_model: Optional[str] = "gemini-2.0-flash"
+    
+    
     anthropic_primary_model: Optional[str] = "claude-3-5-sonnet-20240620"
     together_primary_model: Optional[str] = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
     openai_primary_model: Optional[str] = "gpt-4o"

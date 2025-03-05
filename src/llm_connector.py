@@ -23,6 +23,21 @@ def get_env_array(env_var_name):
         return None
 
 
+async def get_client_with_key_rotate(api_keys_env_var: str, base_url: str) -> AsyncOpenAI:
+    api_keys_array = get_env_array(api_keys_env_var)
+    if api_keys_array:
+            _api_key = random.choice(api_keys_array)
+            print(f"Using API Key from {api_keys_env_var}: {_api_key}")
+            client: AsyncOpenAI = AsyncOpenAI(
+                api_key=_api_key,
+                base_url=base_url
+            )
+            return client
+    else:
+            print(f"{api_keys_env_var} environment variable not found or invalid string array. Using default API key.")
+            client: AsyncOpenAI = AsyncOpenAI(base_url=base_url) # Initialize with base_url, API key will be looked up by default by OpenAI SDK if available in env
+            return client
+
 class LLMConnector:
     """
     A connector class that manages interactions with multiple LLM providers.
@@ -44,7 +59,7 @@ class LLMConnector:
         openai: Optional[OpenAIConfig] = None,
         groq:  Optional[GroqConfig] = None, 
         mistral:  Optional[MistralConfig] = None, 
-        provider_priority: List[str] = ["anthropic", "google", "together", "groq", "mistral"]
+        provider_priority: List[str] = ["anthropic", "together", "groq", "mistral", "google"]
     ) -> None:
         self.google = google
         self.together = together
@@ -255,30 +270,17 @@ class LLMConnector:
                     response_text = response.content[0].text
                 
                 else:
+                
                     if current_provider == "groq":
-                        api_keys_array = get_env_array("GROQ_API_KEYS")
-                        if api_keys_array:   
-                            _api_key = random.choice(api_keys_array)
-                            print("Using API Key: ", _api_key)
-                            client: AsyncOpenAI = AsyncOpenAI(
-                                api_key=_api_key,
-                                base_url="https://api.groq.com/openai/v1"
-                            )
-                        else:
-                            print("GROQ_API_KEYS environment variable not found or invalid string array. Using default API key.")
-                            
+                        client = await get_client_with_key_rotate("GROQ_API_KEYS", "https://api.groq.com/openai/v1")
+                        
                     if current_provider == "mistral":
-                        api_keys_array = get_env_array("MISTRAL_API_KEYS")
-                        if api_keys_array:   
-                            _api_key = random.choice(api_keys_array)
-                            print("Using API Key: ", _api_key)
-                            client: AsyncOpenAI = AsyncOpenAI(
-                                api_key=_api_key,
-                                base_url="https://api.mistral.ai/v1"
-                            )
-                        else:
-                            print("MISTRAL_API_KEYS environment variable not found or invalid string array. Using default API key.")
-                                
+                        client = await get_client_with_key_rotate("MISTRAL_API_KEYS", "https://api.mistral.ai/v1")
+                        
+                    if current_provider == "google":
+                        client = await get_client_with_key_rotate("GOOGLE_API_KEYS", "https://generativelanguage.googleapis.com/v1beta/openai")
+        
+        
                     if system:
                         messages = [{"role": "system", "content": system}] + messages
                     

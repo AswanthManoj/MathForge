@@ -22,6 +22,10 @@ Rules for question generation:
 - Avoid repetitive patterns or similar question structures
 - Do not include multiple choice options or solutions
 - Each question should be tagged with <li> inside the <questions> tag
+- Use inline LaTeX for mathematical expressions, e.g., 
+  * "What is the value of $x^2 + y^2$?"
+  * "Simplify the expression $\frac{a^2 + b^2}{c^2}$"
+  * "Find the solution to the equation $3x + 4 = 16$"
 
 Your output must follow this exact format:
 <thoughts>
@@ -68,6 +72,10 @@ Rules for question generation:
 - Avoid repetitive patterns or similar question structures
 - Do not include multiple choice options or solutions
 - Each question should be tagged with <li> inside appropriate category tags
+- Use inline LaTeX for mathematical expressions, e.g., 
+  * "What is the value of $x^2 + y^2$?"
+  * "Simplify the expression $\frac{a^2 + b^2}{c^2}$"
+  * "Find the solution to the equation $3x + 4 = 16$"
 
 Generate the questions according to the following structure:
 

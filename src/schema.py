@@ -81,3 +81,5 @@ class FinalOutput(BaseModel):
     options:  List[Option]
     correct_answer: int|float|str
     thoughts: Optional[str] = None
+    python_code: Optional[str] = None
+
