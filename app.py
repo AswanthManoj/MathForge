@@ -1,9 +1,9 @@
 import os
 import time
-import uvicorn
+import uvicorn, random
 from pathlib import Path
 from typing import List, Optional
-import sbert_check, random
+import sbert_check
 from config import get_settings
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
@@ -261,17 +261,19 @@ async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
             temperature=request.temperature,
             description=request.description,
         )
-        result.hard_questions.numerical = random.choices(result.hard_questions.numerical, request.num_questions_per_type)
-        result.hard_questions.symbolic = random.choices(result.hard_questions.symbolic, request.num_questions_per_type)
-        result.hard_questions.statement = random.choices(result.hard_questions.statement, request.num_questions_per_type)
+        print(result)
 
-        result.medium_questions.numerical = random.choices(result.medium_questions.numerical, request.num_questions_per_type)
-        result.medium_questions.symbolic = random.choices(result.medium_questions.symbolic, request.num_questions_per_type)
-        result.medium_questions.statement = random.choices(result.medium_questions.statement, request.num_questions_per_type)
+        result.hard_questions.numerical = random.choices(result.hard_questions.numerical, k=request.num_questions_per_type)
+        result.hard_questions.symbolic = random.choices(result.hard_questions.symbolic, k=request.num_questions_per_type)
+        result.hard_questions.statement = random.choices(result.hard_questions.statement, k=request.num_questions_per_type)
 
-        result.easy_questions.numerical = random.choices(result.easy_questions.numerical, request.num_questions_per_type)
-        result.easy_questions.symbolic = random.choices(result.easy_questions.symbolic, request.num_questions_per_type)
-        result.easy_questions.statement = random.choices(result.easy_questions.statement, request.num_questions_per_type)
+        result.medium_questions.numerical = random.choices(result.medium_questions.numerical, k=request.num_questions_per_type)
+        result.medium_questions.symbolic = random.choices(result.medium_questions.symbolic, k=request.num_questions_per_type)
+        result.medium_questions.statement = random.choices(result.medium_questions.statement, k=request.num_questions_per_type)
+
+        result.easy_questions.numerical = random.choices(result.easy_questions.numerical, k=request.num_questions_per_type)
+        result.easy_questions.symbolic = random.choices(result.easy_questions.symbolic, k=request.num_questions_per_type)
+        result.easy_questions.statement = random.choices(result.easy_questions.statement, k=request.num_questions_per_type)
         
         # time.sleep(1)
         mock_result = {
@@ -405,6 +407,7 @@ class QuestionFilterRequest(BaseModel):
     new_questions: List[str]
     similarity_threshold: float = 0.8 # Default threshold, can be overridden in request
 
+
 @app.post("/check-similar-questions")
 async def filter_questions_endpoint(request: QuestionFilterRequest):
     """
@@ -419,7 +422,7 @@ async def filter_questions_endpoint(request: QuestionFilterRequest):
         return removed_questions
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during question filtering: {str(e)}")
-    
+
     
       
     
