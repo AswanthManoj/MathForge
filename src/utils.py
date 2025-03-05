@@ -4,6 +4,7 @@ import math
 import asyncio
 import sympy as sp
 import numpy as np
+from src.schema import Option
 from typing import Optional, List, Tuple
 from src.schema import SecurityException
 from concurrent.futures import ThreadPoolExecutor
@@ -87,8 +88,11 @@ def extract_from_verifier(text: str) -> Tuple[bool, SolverOutput]:
     code = extract_code_snippet(text, itered=True, requires=['solve_problem', 'actual_params'])
     return need_update, SolverOutput(code=code, thoughts=thoughts)
 
-def extract_distractors(text: str) -> List[str]:
-    return extract_iter_xml(text, 'option')
+def extract_distractors(text: str) -> List[Option]:
+    wrong_options = extract_iter_xml(text, 'option')
+    correct_option = extract_xml_content(text, 'correct_option')
+    options = [Option(is_correct=True, output_result=correct_option)]
+    return options + [Option(is_correct=False, output_result=option) for option in wrong_options]
 
 def extract_question(text: str) -> QuestionBank:
     thoughts = extract_xml_content(text, 'thoughts')

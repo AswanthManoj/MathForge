@@ -3,7 +3,7 @@ import time
 import uvicorn
 from pathlib import Path
 from typing import List, Optional
-import sbert_check
+import sbert_check, random
 from config import get_settings
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
@@ -163,6 +163,11 @@ class MultiLevelQuestionsRequest(BaseModel):
         description="The topic or tag name for which questions need to be generated",
         example="Trigonometry"
     )
+    num_questions_per_type: int = Field(
+        default=5,
+        description="Number of questions to be generated per mcq type",
+        example=5
+    )
     description: str = Field(
         ...,
         description="Overview or description of the chapter/topic",
@@ -186,7 +191,8 @@ class MultiLevelQuestionsRequest(BaseModel):
                     "tagname": "Trigonometry",
                     "description": "Basic concepts of trigonometry including sine, cosine, and tangent ratios in right triangles",
                     "temperature": 0.3,
-                    "provider": "google"
+                    "provider": "google",
+                    "num_questions_per_type": 4
                 }
             ]
         }
@@ -255,6 +261,17 @@ async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
             temperature=request.temperature,
             description=request.description,
         )
+        result.hard_questions.numerical = random.choices(result.hard_questions.numerical, request.num_questions_per_type)
+        result.hard_questions.symbolic = random.choices(result.hard_questions.symbolic, request.num_questions_per_type)
+        result.hard_questions.statement = random.choices(result.hard_questions.statement, request.num_questions_per_type)
+
+        result.medium_questions.numerical = random.choices(result.medium_questions.numerical, request.num_questions_per_type)
+        result.medium_questions.symbolic = random.choices(result.medium_questions.symbolic, request.num_questions_per_type)
+        result.medium_questions.statement = random.choices(result.medium_questions.statement, request.num_questions_per_type)
+
+        result.easy_questions.numerical = random.choices(result.easy_questions.numerical, request.num_questions_per_type)
+        result.easy_questions.symbolic = random.choices(result.easy_questions.symbolic, request.num_questions_per_type)
+        result.easy_questions.statement = random.choices(result.easy_questions.statement, request.num_questions_per_type)
         
         # time.sleep(1)
         mock_result = {

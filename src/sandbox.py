@@ -136,7 +136,7 @@ class MathForge:
         temperature: float = 0.3,
         provider: Optional[str] = None,
     ) -> List[Option]:
-        distractors: List[str] = await self.llm.generate(
+        distractors: List[Option] = await self.llm.generate(
             provider=provider,
             temperature=temperature,
             max_tokens=self.max_tokens,
@@ -147,7 +147,7 @@ class MathForge:
                 "content": DISTRACTOR_TEMPLATE.format(correct_answer=correct_answer)
             }],
         )
-        return [Option(is_correct=False, output_result=distractor) for distractor in distractors]
+        return distractors
     
     async def verify_solution(
         self,
@@ -215,13 +215,21 @@ class MathForge:
                     code_output = new_code_output
                     correct_answer = new_correct_answer
                     
-        wrong_options = await self.generate_distractors(correct_answer, temperature=temperature, provider=provider)
+        options = await self.generate_distractors(correct_answer, temperature=temperature, provider=provider)
+        
+        correct_option = None
+        for option in options:
+            if option.is_correct:
+                correct_option = option
+                break
+        if correct_option is None:
+            raise Exception("No correct option found")
 
         return FinalOutput(
+            options=options,
             question=question,
             thoughts=code_output.thoughts,
-            correct_answer=correct_answer,
-            options=[Option(is_correct=True, output_result=correct_answer)] + wrong_options,
+            correct_answer=correct_option,
             python_code = code_output.code
         )
 

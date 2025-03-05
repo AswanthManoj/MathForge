@@ -1,5 +1,13 @@
 from sentence_transformers import SentenceTransformer, util
 
+model = None
+def load_model(model_name: str='all-MiniLM-L6-v2'):
+    # This is a singleton now and each time it will not get loaded to memory as in the previous implementation
+    global model
+    if model is None:
+        model = SentenceTransformer(model_name)
+    return model
+
 def check_similar_questions(existing_questions, new_questions, similarity_threshold=0.9):
     """
     Filters out semantically similar questions from new_questions based on existing_questions.
@@ -13,14 +21,11 @@ def check_similar_questions(existing_questions, new_questions, similarity_thresh
         list: List of objects, each containing a removed question and a list of similar existing questions.
               Format: [{'question': 'removed question', 'similarTo': ['similar existing question 1', 'similar existing question 2', ...]}]
     """
-
-    model_name = 'all-MiniLM-L6-v2'  # You can change this to other SBERT models
-    model = SentenceTransformer(model_name)
-
     if not existing_questions:
         print("Warning: existing_questions list is empty. No questions will be filtered.")
         return []
 
+    model = load_model()
     existing_embeddings = model.encode(existing_questions, convert_to_tensor=True)
 
     removed_questions = []
