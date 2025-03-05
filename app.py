@@ -3,7 +3,7 @@ import time
 import uvicorn, random
 from pathlib import Path
 from typing import List, Optional
-import sbert_check
+# import sbert_check
 from config import get_settings
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
@@ -115,11 +115,6 @@ class QuestionsRequest(BaseModel):
         description="Overview or description of the chapter/topic",
         example="Basic concepts of trigonometry including sine, cosine, and tangent"
     )
-    num_questions: int = Field(
-        default=30,
-        description="Number of questions to be generated",
-        example=30
-    )
     mcq_type: MCQType = Field(
         default=MCQType.NUMERICAL,
         description="Type of multiple choice question. Should be `numerical`, `symbolic` or `statement`",
@@ -150,7 +145,6 @@ class QuestionsRequest(BaseModel):
                     "mcq_type": "numerical",
                     "difficulty_level": "easy",
                     "temperature": 0.3,
-                    "num_questions": 40,
                     "provider": "google"
                 }
             ]
@@ -216,8 +210,6 @@ async def solve_question(request: SolutionRequest):
             temperature=request.temperature,
             verify_solution=request.verify_solution
         )
-        
-
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -231,7 +223,6 @@ async def generate_questions(request: QuestionsRequest):
             mcq_type=request.mcq_type,
             temperature=request.temperature,
             description=request.description,
-            num_questions=request.num_questions,
             difficulty_level=request.difficulty_level,
         )
         return result
@@ -247,7 +238,6 @@ async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
             temperature=request.temperature,
             description=request.description,
         )
-        print(result)
 
         result.hard_questions.numerical = random.choices(result.hard_questions.numerical, k=request.num_questions_per_type)
         result.hard_questions.symbolic = random.choices(result.hard_questions.symbolic, k=request.num_questions_per_type)
@@ -276,20 +266,20 @@ class QuestionFilterRequest(BaseModel):
     similarity_threshold: float = 0.8 # Default threshold, can be overridden in request
 
 
-@app.post("/check-similar-questions")
-async def filter_questions_endpoint(request: QuestionFilterRequest):
-    """
-    Endpoint to filter new questions based on semantic similarity to existing questions.
-    """
-    try:
-        removed_questions = sbert_check.check_similar_questions(
-            request.existing_questions,
-            request.new_questions,
-            request.similarity_threshold
-        )
-        return removed_questions
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error during question filtering: {str(e)}")
+# @app.post("/check-similar-questions")
+# async def filter_questions_endpoint(request: QuestionFilterRequest):
+#     """
+#     Endpoint to filter new questions based on semantic similarity to existing questions.
+#     """
+#     try:
+#         removed_questions = sbert_check.check_similar_questions(
+#             request.existing_questions,
+#             request.new_questions,
+#             request.similarity_threshold
+#         )
+#         return removed_questions
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error during question filtering: {str(e)}")
 
     
       

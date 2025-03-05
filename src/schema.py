@@ -59,7 +59,7 @@ class SecurityException(Exception):
     pass
 
 class QuestionBank(BaseModel):
-    thoughts: str
+    thoughts: str|None=None
     questions: List[str] = []
 
 class Question(BaseModel):

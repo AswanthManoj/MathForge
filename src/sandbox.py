@@ -77,14 +77,11 @@ class MathForge:
         self,
         tagname: str,
         description: str,
-        num_questions: int = 30,
         temperature: float = 0.3,
         mcq_type: str = MCQType.NUMERICAL,
         difficulty_level: str = DifficultyLevel.EASY,
         provider: Optional[str] = None,
     ) -> QuestionBank:
-        thoughts = None
-        all_questions = []
         messages= [{
             "role": "user",
             "content": QUESTION_GENERATION_TEMPLATE.format(
@@ -92,43 +89,15 @@ class MathForge:
                 difficulty_level=difficulty_level, expected_answer_type=mcq_type
             )
         }]
-        while len(all_questions) < num_questions:
-            question_bank: QuestionBank = await self.llm.generate(
-                provider=provider,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=self.max_tokens,
-                extractor_function=extract_question,
-                system=QUESTION_GENERATION_INSTRUCTION,
-            )
-            
-            print(question_bank)
-            
-            if thoughts is None:
-                thoughts = question_bank.thoughts
-
-            all_questions.extend(question_bank.questions)
-            all_questions = list(set(all_questions))
-            if len(all_questions) < num_questions:
-                n = min(30, num_questions - len(all_questions))
-                messages.extend([{
-                    "role": "assistant",
-                    "content": QUESTION_EXTENSION_ASSISTANT_TEMPLATE.format(
-                        thoughts=question_bank.thoughts,
-                        previous_questions='\n'.join([f'<li>{q}</li>' for q in all_questions])
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": QUESTION_EXTENSION_USER_TEMPLATE.format(
-                        topic=tagname, chapter_overview=description, n=n,
-                        difficulty_level=difficulty_level, expected_answer_type=mcq_type
-                    )
-                }])
-        if num_questions>30:
-            return QuestionBank(thoughts=thoughts, questions=all_questions)
-        else:
-            return QuestionBank(thoughts=thoughts, questions=all_questions[:num_questions])
+        question_bank: QuestionBank = await self.llm.generate(
+            provider=provider,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=self.max_tokens,
+            extractor_function=extract_question,
+            system=QUESTION_GENERATION_INSTRUCTION,
+        )
+        return question_bank
 
     async def generate_distractors(
         self,
@@ -216,7 +185,7 @@ class MathForge:
                     correct_answer = new_correct_answer
                     
         options = await self.generate_distractors(correct_answer, temperature=temperature, provider=provider)
-        
+        print(options)
         correct_option = None
         for option in options:
             if option.is_correct:
@@ -229,8 +198,8 @@ class MathForge:
             options=options,
             question=question,
             thoughts=code_output.thoughts,
-            correct_answer=correct_option,
-            python_code = code_output.code
+            python_code = code_output.code,
+            correct_answer=correct_option.output_result
         )
 
         
