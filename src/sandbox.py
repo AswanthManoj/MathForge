@@ -54,6 +54,7 @@ class MathForge:
     
     async def generate_multi_level_questions(
         self,
+        topic: str,
         tagname: str,
         description: str,
         temperature: float = 0.3,
@@ -68,7 +69,7 @@ class MathForge:
             messages=[{
                 "role": "user",
                 "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
-                    topic=tagname, chapter_overview=description,
+                    topic=topic, tagname=tagname, chapter_overview=description,
                 )
             }],
         )

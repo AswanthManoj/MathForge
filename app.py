@@ -3,7 +3,7 @@ import time
 import uvicorn, random
 from pathlib import Path
 from typing import List, Optional
-# import sbert_check
+import sbert_check
 from config import get_settings
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
@@ -152,10 +152,16 @@ class QuestionsRequest(BaseModel):
     }
 
 class MultiLevelQuestionsRequest(BaseModel):
+    topic: str = Field()
     tagname: str = Field(
         ...,
         description="The topic or tag name for which questions need to be generated",
-        example="Trigonometry"
+        example="Finding Relations between Trigonometric Ratios"
+    ),
+    tag_description: str = Field(
+        ...,
+        description="The description of the tag",
+        example="Covers the derivation and application of fundamental trigonometric identities like Pythagorean and quotient identities."
     )
     num_questions_per_type: int = Field(
         default=5,
@@ -218,6 +224,7 @@ async def solve_question(request: SolutionRequest):
 async def generate_questions(request: QuestionsRequest):
     try:
         result = await math_forge.generate_questions(
+            topic=request.topic,
             tagname=request.tagname,
             provider=request.provider,
             mcq_type=request.mcq_type,
@@ -233,7 +240,8 @@ async def generate_questions(request: QuestionsRequest):
 async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
     try:
         result = await math_forge.generate_multi_level_questions(
-            tagname=request.tagname,
+            topic=request.topic,
+            tagname=request.tagname + " - " + request.tag_description,
             provider=request.provider,
             temperature=request.temperature,
             description=request.description,
@@ -266,20 +274,20 @@ class QuestionFilterRequest(BaseModel):
     similarity_threshold: float = 0.8 # Default threshold, can be overridden in request
 
 
-# @app.post("/check-similar-questions")
-# async def filter_questions_endpoint(request: QuestionFilterRequest):
-#     """
-#     Endpoint to filter new questions based on semantic similarity to existing questions.
-#     """
-#     try:
-#         removed_questions = sbert_check.check_similar_questions(
-#             request.existing_questions,
-#             request.new_questions,
-#             request.similarity_threshold
-#         )
-#         return removed_questions
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Error during question filtering: {str(e)}")
+@app.post("/check-similar-questions")
+async def filter_questions_endpoint(request: QuestionFilterRequest):
+    """
+    Endpoint to filter new questions based on semantic similarity to existing questions.
+    """
+    try:
+        removed_questions = sbert_check.check_similar_questions(
+            request.existing_questions,
+            request.new_questions,
+            request.similarity_threshold
+        )
+        return removed_questions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during question filtering: {str(e)}")
 
     
       

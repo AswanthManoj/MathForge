@@ -34,7 +34,11 @@ QUESTION_GENERATION_TEMPLATE = """<topic>{topic}</topic>
 
 MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE = """<topic>{topic}</topic>
 
-<chapter_overview>{chapter_overview}</chapter_overview>"""
+<tag>{tagname}</tag>
+
+<chapter_overview>
+{chapter_overview}
+</chapter_overview>"""
 
 QUESTION_EXTENSION_ASSISTANT_TEMPLATE = """<thoughts>
 {thoughts}

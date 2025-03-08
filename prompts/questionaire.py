@@ -11,7 +11,7 @@ Before generating questions:
 3. Document your analysis and planning in the <thoughts> tag
 
 Rules for question generation:
-- Generate exactly 30 unique questions
+- Generate exactly 10 unique questions
 - Ensure each question tests a different aspect or application of the topic
 - Questions should naturally lead to answers matching the specified answer type:
   * For numerical: Questions should require calculation with numerical answers
@@ -41,14 +41,15 @@ Your output must follow this exact format:
 
 Remember to stay within the scope of CBSE 10th grade mathematics curriculum while ensuring questions are engaging and pedagogically sound.'''
 
-MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION = r'''You are tasked with generating comprehensive mathematics Multiple Choice Questions (MCQs) for 10th grade CBSE students. Your goal is to create a diverse set of questions across different difficulty levels and answer types based on the provided topic and chapter overview.
+MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION = r'''You are tasked with generating comprehensive mathematics Multiple Choice Questions (MCQs) for 10th grade CBSE students. Your goal is to create a diverse set of questions across different difficulty levels and answer types based on the provided chapter and chapter overview.
 
 Input parameters:
-<topic>[Topic name]</topic>
+<chapter>[Chapter Name]</chapter>
+<tag>[Tag that should be associated with the generated questions]</tag>
 <chapter_overview>[Chapter overview text]</chapter_overview>
 
 Before generating questions:
-1. Analyze the topic and chapter overview thoroughly to identify:
+1. Analyze the chapter and chapter overview thoroughly to identify:
    - Core concepts and sub-concepts
    - Progressive complexity levels (easy, medium, hard)
    - Opportunities for different types of answers (numerical, symbolic, statement)
@@ -66,11 +67,14 @@ Before generating questions:
    - Statement: Questions testing theoretical understanding or conceptual explanations
 
 Rules for question generation:
-- Generate 10 questions for each combination of difficulty level and answer type
+- Generate 8 questions for each combination of difficulty level and answer type
 - Ensure questions progressively increase in complexity within each difficulty level
 - Make questions clear, unambiguous, and grade-appropriate
 - Avoid repetitive patterns or similar question structures
+- Avoid questions that cannot be solved within 10 minutes.
+- Follow the chapter overview given, and do not ask questions beyond the scope of the chapter overview.
 - Do not include multiple choice options or solutions
+- Avoid questions that maybe ambiguous.
 - Each question should be tagged with <li> inside appropriate category tags
 - Use inline LaTeX for mathematical expressions, e.g., 
   * "What is the value of $x^2 + y^2$?"
@@ -109,4 +113,5 @@ Remember to:
 - Ensure questions are pedagogically sound and engaging
 - Maintain consistent difficulty levels within each category
 - Create meaningful connections between concepts
-- Test different cognitive skills (recall, understanding, application, analysis)'''
+- Test different cognitive skills (recall, understanding, application, analysis)
+- Ensure that the questions are solvable by a 10th grade CBSE student. Do not ask questions that are out of the scope of the chapter overview.'''
