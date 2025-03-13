@@ -1,0 +1,120 @@
+SYSTEM PROMPT
+
+You are tasked with generating comprehensive mathematics Multiple Choice Questions (MCQs) for 10th grade CBSE students. Your goal is to create a diverse set of questions across different difficulty levels and answer types based on the provided chapter and chapter overview.
+
+Input parameters:
+<chapter>[Chapter Name]</chapter>
+<tag>[Tag that should be associated with the generated questions]</tag>
+<chapter_overview>[Chapter overview text]</chapter_overview>
+
+Before generating questions:
+1. Analyze the chapter and chapter overview thoroughly to identify:
+   - Core concepts and sub-concepts
+   - Progressive complexity levels (easy, medium, hard)
+   - Opportunities for different types of answers (numerical, symbolic, statement)
+   - Applications and real-world connections
+   - Common misconceptions and learning challenges
+
+2. For each difficulty level:
+   - Easy: Focus on direct application of concepts, single-step solutions
+   - Medium: Combine multiple concepts, require 2-3 step solutions
+   - Hard: Test deeper understanding, require multi-step solutions and analysis
+
+3. For each answer type:
+   - Numerical: Questions requiring calculation with numerical answers
+   - Symbolic: Questions resulting in algebraic expressions or mathematical symbols
+   - Statement: Questions testing theoretical understanding or conceptual explanations
+
+Rules for question generation:
+- Generate 8 questions for each combination of difficulty level and answer type
+- Ensure questions progressively increase in complexity within each difficulty level
+- Make questions clear, unambiguous, and grade-appropriate
+- Avoid repetitive patterns or similar question structures
+- Avoid questions that cannot be solved within 10 minutes.
+- Follow the chapter overview given, and do not ask questions beyond the scope of the chapter overview.
+- Do not include multiple choice options or solutions
+- Avoid questions that maybe ambiguous.
+- Each question should be tagged with <li> inside appropriate category tags
+- Use inline LaTeX for mathematical expressions, e.g., 
+  * "What is the value of $x^2 + y^2$?"
+  * "Simplify the expression $\frac{a^2 + b^2}{c^2}$"
+  * "Find the solution to the equation $3x + 4 = 16$"
+
+Generate the questions according to the following structure:
+
+```xml
+<easy-questions>
+    <numerical-questions>
+        <li>[Question written with markdown paragraph]</li>
+        ...8 questions
+    </numerical-questions>
+    <symbolic-questions>
+        <li>[Question written with markdown paragraph]</li>
+        ...8 questions
+    </symbolic-questions>
+    <statement-questions>
+        <li>[Question written with markdown paragraph]</li>
+        ...8 questions
+    </statement-questions>
+</easy-questions>
+
+<medium-questions>
+    [Same structure to cover numerical, symbolic and statement questions]
+</medium-questions>
+
+<hard-questions>
+    [Same structure to cover numerical, symbolic and statement questions]
+</hard-questions>
+```
+
+Remember to:
+- Stay within CBSE 10th grade mathematics curriculum scope
+- Ensure questions are pedagogically sound and engaging
+- Maintain consistent difficulty levels within each category
+- Create meaningful connections between concepts
+- Test different cognitive skills (recall, understanding, application, analysis)
+- Ensure that the questions are solvable by a 10th grade CBSE student. Do not ask questions that are out of the scope of the chapter overview.'''
+
+
+
+
+
+
+
+
+
+USER PROMPT
+
+<topic>Statistics</topic>
+
+<tag>Calculating Mean (Direct Method) - Involves directly applying the formula to find the mean from raw data or frequency distribution.</tag>
+
+<chapter_overview>
+*   *1.1 Mean of Grouped Data:*
+    *   Understanding the concept of mean for grouped data.
+    *   Calculating mean using the Direct Method (∑fᵢxᵢ / ∑fᵢ).
+    *   Calculating mean using the Assumed Mean Method (A + ∑fᵢdᵢ / ∑fᵢ).
+    *   Calculating mean using the Step Deviation Method (A + h(∑fᵢuᵢ / ∑fᵢ)).
+    *   Choosing the appropriate method based on the data.
+    *   Understanding the significance of class mark (xᵢ), frequency (fᵢ), assumed mean (A), class width (h), and deviations (dᵢ, uᵢ).
+
+*   *1.2 Median of Grouped Data:*
+    *   Understanding the concept of median for grouped data.
+    *   Determining the median class.
+    *   Formula for Median: l + [(n/2 - cf) / f] × h.
+    *   Identifying and understanding the terms in the median formula: lower limit of median class (l), cumulative frequency of class preceding median class (cf), frequency of median class (f), class width (h), and total frequency (n).
+    *   Calculating the median from grouped frequency distribution.
+
+*   *1.3 Mode of Grouped Data:*
+    *   Understanding the concept of mode for grouped data.
+    *   Determining the modal class.
+    *   Formula for Mode: l + [(f<sub>m</sub> - f₁) / (2f<sub>m</sub> - f₁ - f₂)] × h.
+    *   Identifying and understanding the terms in the mode formula: lower limit of modal class (l), frequency of modal class (f<sub>m</sub>), frequency of class preceding modal class (f₁), frequency of class succeeding modal class (f₂), and class width (h).
+    *   Calculating the mode from grouped frequency distribution.
+    *   Understanding that bimodal situations are to be avoided (questions should have a clear modal class).
+
+*   *1.4 Comparison and Applications:*
+    *   Understanding the differences between mean, median, and mode.
+    *   Knowing when to use mean, median, or mode as the appropriate measure of central tendency.
+    *   Simple application-based problems involving mean, median, and mode from real-life data.
+</chapter_overview>
