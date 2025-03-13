@@ -59,9 +59,25 @@ class MathForge:
         description: str,
         temperature: float = 0.3,
         provider: Optional[str] = None,
-        icl_sample: Optional[MultiLevelQuestionBank] = None,
+        icl_sample: Optional[MultiLevelQuestionBank|str] = None,
     ) -> MultiLevelQuestionBank:
         if icl_sample:
+            if isinstance(icl_sample, MultiLevelQuestionBank):
+                icl_sample_response = ICL_MULTI_QUESTION_RESPONSE.format(
+                    easy_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.numerical]),
+                    easy_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.symbolic]),
+                    easy_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.statement]),
+                        
+                    medium_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.numerical]),
+                    medium_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.symbolic]),
+                    medium_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.statement]),
+                        
+                    hard_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.numerical]),
+                    hard_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.symbolic]),
+                    hard_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.statement])
+                )
+            elif isinstance(icl_sample, str):
+                icl_sample_response = icl_sample
             messages=[{
                 "role": "user",
                 "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
@@ -69,19 +85,7 @@ class MathForge:
                 )
             }, {
                 "role": "assistant",
-                "content": ICL_MULTI_QUESTION_RESPONSE.format(
-                    easy_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.numerical]),
-                    easy_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.symbolic]),
-                    easy_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.statement]),
-                    
-                    medium_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.numerical]),
-                    medium_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.symbolic]),
-                    medium_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.statement]),
-                    
-                    hard_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.numerical]),
-                    hard_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.symbolic]),
-                    hard_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.statement])
-                )
+                "content": icl_sample_response
             }, {
                 "role": "user",
                 "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(

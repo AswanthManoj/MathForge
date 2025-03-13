@@ -183,7 +183,7 @@ class MultiLevelQuestionsRequest(BaseModel):
         description="LLM provider to use (`google`, `anthropic`, or `together`)",
         example="google"
     )
-    icl_sample: Optional[MultiLevelQuestionBank] = None
+    icl_sample: Optional[MultiLevelQuestionBank|str] = None
 
     model_config = {
         "json_schema_extra": {
