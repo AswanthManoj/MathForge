@@ -70,8 +70,18 @@ class MathForge:
             }, {
                 "role": "assistant",
                 "content": ICL_MULTI_QUESTION_RESPONSE.format(
-                  # Fill here refer "promps/base/ICL_MULTI_QUESTION_RESPONSE" and "prompts/questionaire/MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION"
-                ) # Add a string template of LLM response in xml format and put the values within. f"<li>{question}</li>"
+                    easy_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.numerical]),
+                    easy_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.symbolic]),
+                    easy_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.statement]),
+                    
+                    medium_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.numerical]),
+                    medium_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.symbolic]),
+                    medium_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.statement]),
+                    
+                    hard_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.numerical]),
+                    hard_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.symbolic]),
+                    hard_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.statement])
+                )
             }, {
                 "role": "user",
                 "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
