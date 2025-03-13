@@ -8,7 +8,7 @@ from src.llm_connector import (LLMConnector, AnthropicConfig,
 TogetherConfig, MistralConfig, GroqConfig, OpenAIConfig, GoogleConfig)
 from prompts.solver import SYMBOLIC_SOLVER_INSTRUCTION, STATEMENT_SOLVER_INSTRUCTION
 from src.schema import SolverOutput, Option, FinalOutput, QuestionBank, DifficultyLevel, MultiLevelQuestionBank
-from prompts.base import (INPUT_TEMPLATE, DISTRACTOR_TEMPLATE, VERIFIER_TEMPLATE, 
+from prompts.base import (INPUT_TEMPLATE, DISTRACTOR_TEMPLATE, VERIFIER_TEMPLATE, ICL_MULTI_QUESTION_RESPONSE,
 QUESTION_GENERATION_TEMPLATE, QUESTION_EXTENSION_ASSISTANT_TEMPLATE, QUESTION_EXTENSION_USER_TEMPLATE, MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE)
 from prompts.questionaire import QUESTION_GENERATION_INSTRUCTION, MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION
 
@@ -59,19 +59,40 @@ class MathForge:
         description: str,
         temperature: float = 0.3,
         provider: Optional[str] = None,
+        icl_sample: Optional[MultiLevelQuestionBank] = None,
     ) -> MultiLevelQuestionBank:
-        return await self.llm.generate(
-            provider=provider,
-            temperature=temperature,
-            max_tokens=self.max_tokens,
-            extractor_function=extract_multi_level_questions,
-            system=MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION,
+        if icl_sample:
             messages=[{
                 "role": "user",
                 "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
                     topic=topic, tagname=tagname, chapter_overview=description,
                 )
-            }],
+            }, {
+                "role": "assistant",
+                "content": ICL_MULTI_QUESTION_RESPONSE.format(
+                  # Fill here refer "promps/base/ICL_MULTI_QUESTION_RESPONSE" and "prompts/questionaire/MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION"
+                ) # Add a string template of LLM response in xml format and put the values within. f"<li>{question}</li>"
+            }, {
+                "role": "user",
+                "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
+                    topic=topic, tagname=tagname, chapter_overview=description,
+                ) + "\n\n---\n\nGenerate another set of much more diverse questions"
+            }]
+        else:
+            messages=[{
+                "role": "user",
+                "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
+                    topic=topic, tagname=tagname, chapter_overview=description,
+                )
+            }]
+
+        return await self.llm.generate(
+            provider=provider,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=self.max_tokens,
+            extractor_function=extract_multi_level_questions,
+            system=MULTI_DIFFICULTY_QUESTION_GENERATION_INSTRUCTION,
         )
 
     async def generate_questions(

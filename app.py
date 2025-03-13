@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from src.sandbox import MathForge, MCQType, DifficultyLevel
+from src.sandbox import MathForge, MCQType, DifficultyLevel, MultiLevelQuestionBank
 from src.llm_connector import GoogleConfig, AnthropicConfig, GroqConfig, OpenAIConfig, TogetherConfig
 
 app = FastAPI(title="Synth Math Question Generator API")
@@ -183,6 +183,7 @@ class MultiLevelQuestionsRequest(BaseModel):
         description="LLM provider to use (`google`, `anthropic`, or `together`)",
         example="google"
     )
+    icl_sample: Optional[MultiLevelQuestionBank] = None
 
     model_config = {
         "json_schema_extra": {
@@ -245,6 +246,7 @@ async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
             provider=request.provider,
             temperature=request.temperature,
             description=request.description,
+            icl_sample=request.icl_sample
         )
 
         result.hard_questions.numerical = random.choices(result.hard_questions.numerical, k=request.num_questions_per_type)

@@ -75,3 +75,42 @@ Please generate the questions and output them in the following XML format:
 </questions>
 
 Ensure that the generated questions meaningfully expand upon and complement the existing question set while maintaining consistency in quality and relevance to the topic. The goal is to create a diverse set of "{n}" additional questions."""
+
+
+
+ICL_MULTI_QUESTION_RESPONSE = """<easy-questions>
+    <numerical-questions>
+        {easy_questions_num}
+    </numerical-questions>
+    <symbolic-questions>
+        {easy_questions_sym}
+    </symbolic-questions>
+    <statement-questions>
+        {easy_questions_sta}
+    </statement-questions>
+</easy-questions>
+
+<medium-questions>
+    <numerical-questions>
+        {medium_questions_num}
+    </numerical-questions>
+    <symbolic-questions>
+        {medium_questions_sym}
+    </symbolic-questions>
+    <statement-questions>
+        {medium_questions_sta}
+    </statement-questions>
+</medium-questions>
+
+<hard-questions>
+    <numerical-questions>
+        {hard_questions_num}
+    </numerical-questions>
+    <symbolic-questions>
+        {hard_questions_sym}
+    </symbolic-questions>
+    <statement-questions>
+        {hard_questions_sta}
+    </statement-questions>
+</hard-questions>"""
+
