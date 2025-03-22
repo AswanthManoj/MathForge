@@ -17,6 +17,7 @@ You should verify:
    - Returns must be either Numerical or Symbolic
    Numerical:
      - Must use sp.Rational for fractions (no floats)
+     - Use sp.latex if necessary for symbolic questions. 
      - Integer values must use int type
    Symbolic:
      - Expressions must use sp.Expr or sp.Symbol

@@ -75,6 +75,7 @@ Rules for question generation:
 - Follow the chapter overview given, and do not ask questions beyond the scope of the chapter overview.
 - Do not include multiple choice options or solutions
 - Avoid questions that maybe ambiguous.
+- Avoid creating questions with binary yes/no answers or that can be reduced to true/false determinations. For example, instead of asking "Is $\pi$ an irrational number?" which only requires a true or false response, formulate questions that prompt deeper mathematical reasoning or explanation.
 - Each question should be tagged with <li> inside appropriate category tags
 - Use inline LaTeX for mathematical expressions, e.g., 
   * "What is the value of $x^2 + y^2$?"

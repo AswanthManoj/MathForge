@@ -1,7 +1,7 @@
 from src.schema import MCQType
 from typing import List, Optional, Tuple
 from prompts.verifier import VERIFIER_INSTRUCTION
-from prompts.distractor import DISTRACATOR_INSTRUCTION
+from prompts.distractor import DISTRACTOR_INSTRUCTION
 from src.utils import (extract_from_solver, remove_print_statements, extract_question, 
 safe_exec, format_result, extract_distractors, extract_from_verifier, extract_multi_level_questions)
 from src.llm_connector import (LLMConnector, AnthropicConfig,  
@@ -55,42 +55,43 @@ class MathForge:
     async def generate_multi_level_questions(
         self,
         topic: str,
+        sample_response_tagname: str,
         tagname: str,
         description: str,
         temperature: float = 0.3,
         provider: Optional[str] = None,
-        icl_sample: Optional[MultiLevelQuestionBank|str] = None,
+        sample_response_question_set: Optional[MultiLevelQuestionBank|str] = None,
     ) -> MultiLevelQuestionBank:
-        if icl_sample:
-            if isinstance(icl_sample, MultiLevelQuestionBank):
-                icl_sample_response = ICL_MULTI_QUESTION_RESPONSE.format(
-                    easy_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.numerical]),
-                    easy_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.symbolic]),
-                    easy_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.easy_questions.statement]),
+        if sample_response_question_set:
+            if isinstance(sample_response_question_set, MultiLevelQuestionBank):
+                sample_response_question_set = ICL_MULTI_QUESTION_RESPONSE.format(
+                    easy_questions_num="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.easy_questions.numerical]),
+                    easy_questions_sym="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.easy_questions.symbolic]),
+                    easy_questions_sta="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.easy_questions.statement]),
                         
-                    medium_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.numerical]),
-                    medium_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.symbolic]),
-                    medium_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.medium_questions.statement]),
+                    medium_questions_num="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.medium_questions.numerical]),
+                    medium_questions_sym="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.medium_questions.symbolic]),
+                    medium_questions_sta="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.medium_questions.statement]),
                         
-                    hard_questions_num="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.numerical]),
-                    hard_questions_sym="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.symbolic]),
-                    hard_questions_sta="\n        ".join([f"<li>{question}</li>" for question in icl_sample.hard_questions.statement])
+                    hard_questions_num="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.hard_questions.numerical]),
+                    hard_questions_sym="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.hard_questions.symbolic]),
+                    hard_questions_sta="\n        ".join([f"<li>{question}</li>" for question in sample_response_question_set.hard_questions.statement])
                 )
-            elif isinstance(icl_sample, str):
-                icl_sample_response = icl_sample
+            elif isinstance(sample_response_question_set, str):
+                sample_response_question_set = sample_response_question_set
             messages=[{
                 "role": "user",
                 "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
-                    topic=topic, tagname=tagname, chapter_overview=description,
+                    topic=topic, tagname=sample_response_tagname, chapter_overview=description,
                 )
             }, {
                 "role": "assistant",
-                "content": icl_sample_response
+                "content": sample_response_question_set
             }, {
                 "role": "user",
                 "content": MULTI_LEVEL_QUESTION_GENERATION_TEMPLATE.format(
                     topic=topic, tagname=tagname, chapter_overview=description,
-                ) + "\n\n---\n\nGenerate another set of much more diverse questions"
+                ) + "\n\n---\n\nGenerate another set of much more diverse questions associated with the tag:"
             }]
         else:
             messages=[{
@@ -145,7 +146,7 @@ class MathForge:
             provider=provider,
             temperature=temperature,
             max_tokens=self.max_tokens,
-            system=DISTRACATOR_INSTRUCTION,
+            system=DISTRACTOR_INSTRUCTION,
             extractor_function=extract_distractors,
             messages=[{
                 "role": "user",
@@ -221,7 +222,7 @@ class MathForge:
                     correct_answer = new_correct_answer
                     
         options = await self.generate_distractors(correct_answer, temperature=temperature, provider=provider)
-        print(options)
+        # print(options)
         correct_option = None
         for option in options:
             if option.is_correct:

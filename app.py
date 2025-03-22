@@ -163,6 +163,16 @@ class MultiLevelQuestionsRequest(BaseModel):
         description="The description of the tag",
         example="Covers the derivation and application of fundamental trigonometric identities like Pythagorean and quotient identities."
     )
+    sample_response_tagname: Optional[str] = Field(
+        ...,
+        description="The topic or tag name for which questions need to be generated",
+        example="Finding Relations between Trigonometric Ratios"
+    ),
+    sample_response_tag_description: Optional[str] = Field(
+        ...,
+        description="The description of the tag",
+        example="Covers the derivation and application of fundamental trigonometric identities like Pythagorean and quotient identities."
+    )
     num_questions_per_type: int = Field(
         default=5,
         description="Number of questions to be generated per mcq type",
@@ -183,7 +193,7 @@ class MultiLevelQuestionsRequest(BaseModel):
         description="LLM provider to use (`google`, `anthropic`, or `together`)",
         example="google"
     )
-    icl_sample: Optional[MultiLevelQuestionBank|str] = None
+    sample_response_question_set: Optional[MultiLevelQuestionBank|str] = None
 
     model_config = {
         "json_schema_extra": {
@@ -242,11 +252,12 @@ async def generate_multi_level_questions(request: MultiLevelQuestionsRequest):
     try:
         result = await math_forge.generate_multi_level_questions(
             topic=request.topic,
+            sample_response_tagname = request.sample_response_tagname + " - " + request.sample_response_tag_description,
             tagname=request.tagname + " - " + request.tag_description,
             provider=request.provider,
             temperature=request.temperature,
             description=request.description,
-            icl_sample=request.icl_sample
+            sample_response_question_set=request.sample_response_question_set
         )
 
         result.hard_questions.numerical = random.choices(result.hard_questions.numerical, k=request.num_questions_per_type)
