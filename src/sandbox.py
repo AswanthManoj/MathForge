@@ -138,6 +138,7 @@ class MathForge:
 
     async def generate_distractors(
         self,
+        question: str,
         correct_answer: str,
         temperature: float = 0.3,
         provider: Optional[str] = None,
@@ -150,7 +151,7 @@ class MathForge:
             extractor_function=extract_distractors,
             messages=[{
                 "role": "user",
-                "content": DISTRACTOR_TEMPLATE.format(correct_answer=correct_answer)
+                "content": DISTRACTOR_TEMPLATE.format(question=question, correct_answer=correct_answer)
             }],
         )
         return distractors
@@ -221,7 +222,7 @@ class MathForge:
                     code_output = new_code_output
                     correct_answer = new_correct_answer
                     
-        options = await self.generate_distractors(correct_answer, temperature=temperature, provider=provider)
+        options = await self.generate_distractors(question, correct_answer, temperature=temperature, provider=provider)
         # print(options)
         correct_option = None
         for option in options:

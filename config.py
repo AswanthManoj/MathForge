@@ -22,7 +22,7 @@ class Settings:
     
     # google_primary_model: Optional[str] = "gemini-2.0-pro-exp-02-05"
     
-    google_primary_model: Optional[str] = "gemini-2.0-flash"
+    google_primary_model: Optional[str] = "gemini-2.5-pro-exp-03-25"
     
     
     anthropic_primary_model: Optional[str] = "claude-3-5-sonnet-20240620"

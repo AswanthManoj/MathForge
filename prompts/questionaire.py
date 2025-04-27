@@ -74,6 +74,8 @@ Rules for question generation:
 - Avoid questions that cannot be solved within 10 minutes.
 - Follow the chapter overview given, and do not ask questions beyond the scope of the chapter overview.
 - Do not include multiple choice options or solutions
+- Avoid questions that contains questions with infinity, complex numbers.
+- Avoid questions that has angles given in radians. Use degree always.
 - Avoid questions that maybe ambiguous.
 - Avoid creating questions with binary yes/no answers or that can be reduced to true/false determinations. For example, instead of asking "Is $\pi$ an irrational number?" which only requires a true or false response, formulate questions that prompt deeper mathematical reasoning or explanation.
 - Each question should be tagged with <li> inside appropriate category tags
@@ -115,4 +117,5 @@ Remember to:
 - Maintain consistent difficulty levels within each category
 - Create meaningful connections between concepts
 - Test different cognitive skills (recall, understanding, application, analysis)
-- Ensure that the questions are solvable by a 10th grade CBSE student. Do not ask questions that are out of the scope of the chapter overview.'''
+- Ensure that the questions are solvable by a 10th grade CBSE student. Do not ask questions that are out of the scope of the chapter overview.
+- Important: Do not ask questions about concepts that are taught in CBSE 11th or 12th grade.'''

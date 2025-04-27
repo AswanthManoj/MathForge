@@ -5,7 +5,9 @@ INPUT_TEMPLATE = """<question>
 <expected_output_type>{output_type}</expected_output_type>
 """
 
-DISTRACTOR_TEMPLATE = """<correct_answer>{correct_answer}</correct_answer>"""
+DISTRACTOR_TEMPLATE = """<question>{question}</question>
+
+<correct_answer>{correct_answer}</correct_answer>"""
 
 
 VERIFIER_TEMPLATE = """

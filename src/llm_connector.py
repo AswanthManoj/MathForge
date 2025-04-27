@@ -86,7 +86,7 @@ class LLMConnector:
         if self.google:
             self.clients["google"] = AsyncOpenAI(
                 api_key=self.google.api_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/"
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai"
             )
         if self.openai:
             self.clients["openai"] = AsyncOpenAI(
@@ -300,6 +300,8 @@ class LLMConnector:
                         temperature=temperature,
                     )
                     response_text = response.choices[0].message.content
+                    print(response)
+                    print(response_text)
                 break
             except Exception:
                 if provider:
