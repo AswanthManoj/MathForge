@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings:
-    max_tokens: int = 5049
+    max_tokens: int = 12000
     temperature: float = 0.3
     code_execution_timeout: int = 5
     
@@ -22,7 +22,7 @@ class Settings:
     
     # google_primary_model: Optional[str] = "gemini-2.0-pro-exp-02-05"
     
-    google_primary_model: Optional[str] = "gemini-2.5-pro-exp-03-25"
+    google_primary_model: Optional[str] = "gemini-2.5-flash-preview-04-17"
     
     
     anthropic_primary_model: Optional[str] = "claude-3-5-sonnet-20240620"

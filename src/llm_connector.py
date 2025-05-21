@@ -220,7 +220,7 @@ class LLMConnector:
         messages: List[dict], 
         extractor_function: Optional[Callable] = None, 
         system: Optional[str] = None, 
-        max_tokens: int = 2049, 
+        max_tokens: int = 12000, 
         enable_cache: bool = False,
         temperature: float = 0.3,
         provider: Optional[str] = None
@@ -293,6 +293,7 @@ class LLMConnector:
                             _messages.append({"role": message['role'], "content": message['content']})
                     
                     messages = _messages    
+       
                     response = await client.chat.completions.create(
                         model=config.model,
                         messages=messages,
@@ -300,7 +301,7 @@ class LLMConnector:
                         temperature=temperature,
                     )
                     response_text = response.choices[0].message.content
-                    print(response)
+                    # print(response)
                     print(response_text)
                 break
             except Exception:

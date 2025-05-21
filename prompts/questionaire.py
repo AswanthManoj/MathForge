@@ -83,6 +83,7 @@ Rules for question generation:
   * "What is the value of $x^2 + y^2$?"
   * "Simplify the expression $\frac{a^2 + b^2}{c^2}$"
   * "Find the solution to the equation $3x + 4 = 16$"
+- For table based questions, use github flavored markdown (gfm) syntax. 
 
 Generate the questions according to the following structure:
 
